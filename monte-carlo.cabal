@@ -1,0 +1,32 @@
+name:            monte-carlo
+version:         0.1
+homepage:        http://stat.stanford.edu/~patperry/code/monte-carlo
+synopsis:        A monad and transformer for Monte Carlo calculations.
+description:
+    A monad and transformer for Monte Carlo calculations.  The monads
+    carry and provide access to a random number generator.  Importantly,
+    they only keep one copy of the generator state, and so are much more
+    efficient than MonadRandom.  Currently, only the generator that comes
+    with the GNU Scientific Library is supported.
+    .
+category:        Math
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2008. Patrick Perry <patperry@stanford.edu>
+author:          Patrick Perry
+maintainer:      Patrick Perry <patperry@stanford.edu>
+cabal-version: >= 1.2.0
+build-type:      Simple
+tested-with:     GHC ==6.8.3
+
+extra-source-files:     examples/Pi.hs
+
+library
+    exposed-modules:    Control.Monad.MC
+                        Control.Monad.MC.GSL
+                        
+    ghc-options:        -Wall
+    extensions:         MultiParamTypeClasses, FlexibleInstances, 
+                        UndecidableInstances 
+
+    build-depends:      base, mtl, gsl-random
