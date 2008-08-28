@@ -69,10 +69,9 @@ main' n = let
     seed   = 0
     (mu,se) = evalMC (computePi n) $ mt19937 seed
     (l,u)   = interval mu se
-    delta   = 2.575*se
     r       = 500
     c       = evalMC (coverage r n) $ mt19937 seed
     in do
-        printf "Estimate from one interval: %g\n" mu
+        printf "Estimate from one simulation: %g\n" mu
         printf "99%% Confidence Interval:    (%g,%g)\n" l u
         printf "\nOf %d intervals, %d contain the true value.\n" r c
