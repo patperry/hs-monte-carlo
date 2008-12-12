@@ -1,6 +1,7 @@
 
 import Control.Monad.MC
 import Control.Monad
+import Data.List( foldl' )
 import System.Environment( getArgs )
 import Text.Printf( printf )
 
@@ -13,27 +14,30 @@ unitBox = liftM2 (,) (uniform (-1) 1)
 inUnitCircle :: (Double,Double) -> Bool
 inUnitCircle (x,y) = x*x + y*y <= 1
 
--- | Generate @n@ points in the unit box and count how many are in the
--- unit circle.
-countInBox :: Int -> MC Int
-countInBox n = do
-    xs <- replicateM n unitBox
-    return $ count inUnitCircle xs
+-- | Given a list of indicators, return the sample mean and standard
+-- error.
+average :: [Bool] -> (Double,Double)
+average is = let
+    (t,n) = foldl' count (0,0) is
+    p     = toDouble t / toDouble n
+    se    = sqrt (p * (1 - p) / toDouble n)
+    in (p, se)
+  where
+    count (t,n) i = let 
+        t' = if i then t+1 else t
+        n' = n+1
+        in t' `seq` n' `seq` (t',n')
 
--- | Count how many times the predicate is true
-count :: (a -> Bool) -> [a] -> Int
-count f = length . filter f
-
+    toDouble = realToFrac . toInteger
+        
 -- | Compute a Monte Carlo estimate of pi based on @n@ samples.  Return
 -- the estimate and the standard error of the estimate.
 computePi :: Int -> MC (Double,Double)
 computePi n = do
-    m  <- countInBox n
-    let p  = toDouble m / toDouble n
-        se = sqrt (p * (1 - p) / toDouble n)
-    return (4*p, 4*se)
-  where
-    toDouble = realToFrac . toInteger
+    is <- liftM (map inUnitCircle) (unsafeInterleaveMC $ replicateM n unitBox)
+    let (mu ,se ) = average is
+        (mu',se') = (4*mu,4*se)
+    return (mu',se')
 
 -- | Given an estimate and standard error, produce a 99% confidence
 -- interval based on the Central Limit Theorem
@@ -58,8 +62,9 @@ covers n = do
 -- inverval
 coverage :: Int -> Int -> MC Int
 coverage r n = do
-    liftM (count id) $ replicateM r (covers n)
-    
+    liftM count $ replicateM r (covers n)
+  where
+    count = length . filter id
     
 main = do
     [n] <- map read `fmap` getArgs
