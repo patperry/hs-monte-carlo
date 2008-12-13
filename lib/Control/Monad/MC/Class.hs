@@ -22,8 +22,11 @@ module Control.Monad.MC.Class (
     normal,
     poisson,
     
+    module Control.Monad.MC.Sample,
+    
     -- * Interleaving computations
     unsafeInterleaveMC
     ) where
 
 import Control.Monad.MC.Base
+import Control.Monad.MC.Sample

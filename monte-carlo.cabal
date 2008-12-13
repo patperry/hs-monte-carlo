@@ -29,6 +29,7 @@ library
             Control.Monad.MC.Base
             Control.Monad.MC.GSL
             Control.Monad.MC.GSLBase
+            Control.Monad.MC.Sample
           
     extensions:
             FlexibleContexts, 
