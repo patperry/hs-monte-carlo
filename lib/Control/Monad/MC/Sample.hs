@@ -18,7 +18,6 @@ module Control.Monad.MC.Sample (
     -- * Sampling @Int@s
     sampleInt,
     sampleIntWithWeights,
-    sampleIntWithProbs,
     sampleIntSubset,
     sampleIntSubsetWithWeights,
     ) where
@@ -33,6 +32,18 @@ sample :: (MonadMC m) => n -> [a] -> m a
 sample = undefined
 {-# INLINE sample #-}
 
+sampleWithWeights :: (MonadMC m) => [Double] -> Int -> [a] -> m a
+sampleWithWeights = undefined
+{-# INLINE sampleWithWeights #-}
+
+sampleSubset :: (MonadMC m) => Int -> Int -> [a] -> m [a]
+sampleSubset = undefined
+{-# INLINE sampleSubset #-}
+
+sampleSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> [a] -> m [a]
+sampleSubsetWithWeights = undefined
+{-# INLINE sampleSubsetWithWeights #-}
+
 -- | @sampleInt n@ samples integers uniformly from @[ 0..n-1 ]@.  It is an
 -- error to call this function with a non-positive @n@.
 sampleInt :: (MonadMC m) => Int -> m Int
@@ -40,28 +51,35 @@ sampleInt n | n < 1     = fail "invalid argument"
             | otherwise = uniformInt n
 {-# INLINE sampleInt #-}
 
-sampleWithWeights :: (MonadMC m) => [Double] -> Int -> [a] -> m a
-sampleWithWeights = undefined
-{-# INLINE sampleWithWeights #-}
-
 -- | @sampleIntWithProbs ps n@ samples integers from @[ 0..n-1 ]@ with the
 -- probability of choosing @i@ equal to @ps !! i@.  The list @ps@ must
 -- have length equal to @n@ and sum to @1@.
 sampleIntWithProbs :: (MonadMC m) => [Double] -> Int -> m Int
 sampleIntWithProbs ps n =
-    let qjs = computeTable ps n
+    let qjs = computeTable False ps n
     in liftM (indexTable qjs) (uniform 0 1)
 {-# INLINE sampleIntWithProbs #-}
+
+-- | @sampleIntWithWeights ws n@ samples integers from @[ 0..n-1 ]@ with the
+-- probability of choosing @i@ proportional to @ws !! i@.  The list @ws@ must
+-- have length equal to @n@.  Also, the elements of @ws@ must be non-negative
+-- with at least one nonzero entry.
+sampleIntWithWeights :: (MonadMC m) => [Double] -> Int -> m Int
+sampleIntWithWeights ws n =
+    let qjs = computeTable True ws n
+    in liftM (indexTable qjs) (uniform 0 1)
+{-# INLINE sampleIntWithWeights #-}
 
 -- | Compute the table for use in Walker's aliasing method.  See section
 -- III.4 of Luc Devroye's book "Non-Uniform Random Variate Generation",
 -- which is available on his homepage, for a description of how it works.
-computeTable :: [Double] -> Int -> UArr (Double :*: Int)
-computeTable ps n = runST $ do
+computeTable :: Bool -> [Double] -> Int -> UArr (Double :*: Int)
+computeTable normalize ps n = runST $ do
     sets <- newMU n :: ST s (MUArr Int s)
     qjs  <- newMU n :: ST s (MUArr (Double :*: Int) s)
 
-    nsmall <- partitionProbs sets qjs
+    nsmall <- (if normalize then partitionProbsNormalize else partitionProbs)
+                  sets qjs
     breakLarger sets nsmall qjs
     scaleTable qjs
 
@@ -91,6 +109,36 @@ computeTable ps n = runST $ do
                            return (smaller,greater-1) )
               (0,n-1)
               (zip [0 .. n-1] ps)
+
+    -- Same as above, but normalize the probabilities to sum to @1@.
+    partitionProbsNormalize sets qjs = do
+        total <-
+            foldM (\current (i,p) -> do
+                      if p >= 0
+                          then do
+                              writeMU qjs i (p :*: uninitialized)
+                              return $! current + p
+                          else
+                              fail $ "negative probability" )
+                  0
+                  (zip [0 .. n-1] ps)
+
+        when (total == 0) $ fail "no positive probabilities given"
+        let scale = nd/total
+        liftM snd $
+            foldM (\(smaller,greater) i -> do
+                   p <- liftM fstS $ readMU qjs i
+                   let q = scale*p
+                   writeMU qjs i (p :*: uninitialized)
+                   if q < 1
+                       then do
+                           writeMU sets smaller i
+                           return (smaller+1,greater)
+                       else do
+                           writeMU sets greater i
+                           return (smaller,greater-1) )
+                  (0,n-1)
+                  [0 .. n-1]
 
     -- Intialize the aliasing table qjs.  The lth entry of the table represents
     -- a mixture distribution with weight q[l] on l and weight (1-q[l]) on
@@ -138,26 +186,9 @@ indexTable qjs u = let
     (ql :*: jl) = indexU qjs l
     in if nu < ql then l else jl
 
-
--- | @sampleIntWithWeights ws n@ samples integers from @[ 0..n-1 ]@ with the
--- probability of choosing @i@ proportional to @ws !! i@.  The list @ws@ must
--- have length equal to @n@.  Also, the elements of @ws@ must be non-negative
--- with at least one nonzero entry.
-sampleIntWithWeights :: (MonadMC m) => [Double] -> Int -> m Int
-sampleIntWithWeights = undefined
-{-# INLINE sampleIntWithWeights #-}
-
-sampleSubset :: (MonadMC m) => Int -> Int -> [a] -> m [a]
-sampleSubset = undefined
-{-# INLINE sampleSubset #-}
-
 sampleIntSubset :: (MonadMC m) => Int -> Int -> m [Int]
 sampleIntSubset = undefined
 {-# INLINE sampleIntSubset #-}
-
-sampleSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> [a] -> m [a]
-sampleSubsetWithWeights = undefined
-{-# INLINE sampleSubsetWithWeights #-}
 
 sampleIntSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
 sampleIntSubsetWithWeights = undefined
