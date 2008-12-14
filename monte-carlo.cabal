@@ -19,7 +19,7 @@ cabal-version:  >= 1.2
 extra-source-files: examples/Pi.hs
 
 library
-    build-depends:  base, mtl, gsl-random
+    build-depends:  base, mtl, gsl-random, uvector
     
     exposed-modules: 
             Control.Monad.MC
