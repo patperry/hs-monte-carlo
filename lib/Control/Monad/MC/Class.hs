@@ -23,6 +23,7 @@ module Control.Monad.MC.Class (
     poisson,
     
     module Control.Monad.MC.Sample,
+    module Control.Monad.MC.Repeat,
     
     -- * Interleaving computations
     unsafeInterleaveMC
@@ -30,3 +31,4 @@ module Control.Monad.MC.Class (
 
 import Control.Monad.MC.Base
 import Control.Monad.MC.Sample
+import Control.Monad.MC.Repeat
