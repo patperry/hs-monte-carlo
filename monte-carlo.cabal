@@ -32,12 +32,14 @@ library
             Control.Monad.MC.Repeat
             Control.Monad.MC.Sample
             Control.Monad.MC.Summary
+            Control.Monad.MC.Walker
           
     extensions:
             FlexibleContexts, 
             FlexibleInstances, 
             MultiParamTypeClasses,
             TypeFamilies,
+            TypeOperators,
             UndecidableInstances
 
     hs-source-dirs: lib
