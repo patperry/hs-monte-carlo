@@ -1,3 +1,5 @@
+module Sampling
+    where
 
 import Control.Monad.MC
 import Control.Monad
@@ -48,7 +50,7 @@ main = do
 
 main' reps =
     let seed = 0
-        n    = 100
+        n    = 10
         p    = 0.2
         size = 500
         c    = evalMC (coverage n p size reps) $ mt19937 seed in
