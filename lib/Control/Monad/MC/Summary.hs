@@ -32,7 +32,6 @@ data Summary = S {-# UNPACK #-} !Int     -- sample size
                  {-# UNPACK #-} !Double  -- sum of squares
                  {-# UNPACK #-} !Double  -- sample min
                  {-# UNPACK #-} !Double  -- sample max
-    deriving (Eq)
     
 -- | Get an empty summary.
 summary :: Summary
@@ -70,7 +69,7 @@ sampleSD s = sqrt (sampleVar s)
 
 -- | Get the sample standard error.
 sampleSE :: Summary -> Double
-sampleSE s = (sampleSD s) / fromIntegral (sampleSize s)
+sampleSE s = sqrt (sampleVar s / fromIntegral (sampleSize s))
 
 -- | Get the minimum of the sample.
 sampleMin :: Summary -> Double
