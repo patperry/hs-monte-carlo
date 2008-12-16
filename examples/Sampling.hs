@@ -1,4 +1,4 @@
-module Sampling
+module Main
     where
 
 import Control.Monad.MC
@@ -6,7 +6,6 @@ import Control.Monad
 import Data.List( foldl' )
 import System.Environment( getArgs )
 import Text.Printf( printf )
-
 
 
 -- | Sample from a binomial distribution with the given parameters.
@@ -37,11 +36,12 @@ interval95 s =
 coverage :: (MonadMC m) => Int -> Double -> Int -> Int -> m Int
 coverage n p size reps =
     repeatMCWith
-        (\c ci -> if p `inInterval` ci then c+1 else c)
+        (\c ci -> if mu `inInterval` ci then c+1 else c)
         0
         reps
         (binomialMean n p size)
   where
+    mu = fromIntegral n * p
     x `inInterval` (l,h) = x > l && x < h
 
 main = do
