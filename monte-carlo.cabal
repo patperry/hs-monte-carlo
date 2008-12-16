@@ -16,7 +16,8 @@ description:    A monad and transformer for Monte Carlo calculations.  The
 build-type:     Simple
 stability:      experimental
 cabal-version:  >= 1.2
-extra-source-files: examples/Pi.hs, examplex/Sampling.hs
+extra-source-files: examples/Pi.hs, examplex/Sampling.hs tests/Main.hs
+                    tests/Makefile
 
 library
     build-depends:  base, mtl, gsl-random, uvector

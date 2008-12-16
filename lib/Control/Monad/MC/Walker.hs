@@ -15,6 +15,8 @@ module Control.Monad.MC.Walker (
     Table,
     computeTable,
     indexTable,
+    tableSize,
+    component,
     ) where
 
 import Control.Monad
@@ -26,6 +28,15 @@ import Data.Array.Vector
 -- distribution with weight @q[l]@ on @l@ and weight @(1-q[l])@ on @j[l]@.
 -- The @l@th element of the table stores the pair @q[l] :*: j[l]@.
 newtype Table = T (UArr (Double :*: Int))
+
+-- | Get the @i@th mixture component.  That is, return @q[i]@ and @j[i]@,
+-- where the @i@th mixture component puts mass @q[i]@ on @i@ and mass
+-- @1 - q[i]@ on @j[i]@.
+component :: Table -> Int -> (Double,Int)
+component (T qjs) i = let
+    (q' :*: j) = indexU qjs i
+    q = q' - fromIntegral i
+    in (q,j)
 
 -- | Compute the table for use in Walker's aliasing method.
 computeTable :: Int -> [Double] -> Table
@@ -44,6 +55,10 @@ indexTable (T qjs) u = let
     l  = floor nu
     (ql :*: jl) = indexU qjs l
     in if nu < ql then l else jl
+
+-- | Get the size of the table
+tableSize :: Table -> Int
+tableSize (T qjs) = lengthU qjs
 
 -- | An intermediate result for use in computing a Table.
 type STTable s = MUArr (Double :*: Int) s
@@ -86,7 +101,7 @@ initTable n ws = do
         foldM (\(smaller,greater) i -> do
                p <- liftM fstS $ readMU qjs i
                let q = scale*p
-               writeMU qjs i (p :*: i)
+               writeMU qjs i (q :*: i)
                if q < 1
                    then do
                        writeMU sets smaller i
@@ -104,10 +119,13 @@ initTable n ws = do
 -- distributions by splitting the larger probabilites sccross multiple
 -- distribions.
 breakLarger :: STTable s -> STPartition s -> ST s ()
-breakLarger qjs (P sets nsmall) = let
-    breakLargerHelp nsmall' i | nsmall' == 0 = return ()
+breakLarger qjs (P sets nsmall) | nsmall == 0 = return ()
+                                | otherwise   = let
+    n = lengthMU qjs
+    breakLargerHelp nsmall' i | nsmall' == n = return ()
+                              | i == n       = return ()
                               | otherwise    = do
-        -- while Smaller is not empty
+        -- while Greater is not empty
         -- choose k from Greater, l from Smaller
         k  <- readMU sets $ nsmall'
         l  <- readMU sets $ i
@@ -123,7 +141,7 @@ breakLarger qjs (P sets nsmall) = let
         writeMU qjs k (qk' :*: k)
 
         -- if qk' < 1, move k from Greater to Smaller
-        let nsmall'' = if qk' < 1 then nsmall' else nsmall'-1
+        let nsmall'' = if qk' < 1 then nsmall'+1 else nsmall'
 
         breakLargerHelp nsmall'' (i+1)
     in
