@@ -1,0 +1,7 @@
+dist
+*.hi
+*.o
+examples/Sampling
+examples/Pi
+
+
