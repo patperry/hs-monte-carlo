@@ -3,5 +3,6 @@ dist
 *.o
 examples/Sampling
 examples/Pi
+tests/test-mc
 
 
