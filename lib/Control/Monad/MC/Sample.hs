@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Sample
@@ -17,14 +18,21 @@ module Control.Monad.MC.Sample (
     sampleInt,
     sampleIntWithWeights,
     sampleIntSubset,
+    
+    -- * Shuffling
+    shuffle,
+    shuffleInt,
     ) where
 
 import Control.Monad
+import Control.Monad.ST
 import Control.Monad.MC.Base
 import Control.Monad.MC.Walker
 
+import Data.Array.Base
+import Data.Array.IArray
+import Data.Array.ST
 import Data.Array.Vector
-import GHC.Arr
 
 -- | @sample n xs@ samples a value uniformly from @take n xs@.  The results
 -- are undefined if @length xs@ is less than @n@.
@@ -50,8 +58,8 @@ sampleSubset n k xs =
 {-# INLINE sampleSubset #-}
 
 sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
-sampleHelp n xs f = let
-    arr = listArray (0,n-1) xs
+sampleHelp n (xs :: [a]) f = let
+    arr = listArray (0,n-1) xs :: Array Int a
     in liftM (unsafeAt arr) f
 
 sampleHelpUA :: (UA a, Monad m) => Int -> [a] -> m Int -> m a
@@ -65,8 +73,8 @@ sampleHelpUA n xs f = let
               sampleHelp n (xs :: [Int]) f = sampleHelpUA n xs f #-}
 
 sampleListHelp :: (Monad m) => Int -> [a] -> m [Int] -> m [a]
-sampleListHelp n xs f = let
-    arr = listArray (0,n-1) xs
+sampleListHelp n (xs :: [a]) f = let
+    arr = listArray (0,n-1) xs :: Array Int a
     in liftM (map $ unsafeAt arr) f
 
 sampleListHelpUA :: (UA a, Monad m) => Int -> [a] -> m [Int] -> m [a]
@@ -112,3 +120,57 @@ sampleIntSubset n k | k < 0     = fail "negative subset size"
             then liftM (i:) $ sampleIntSubsetHelp (i+1) (k'-1)
             else              sampleIntSubsetHelp (i+1)  k'
 {-# INLINE sampleIntSubset #-}
+
+-- | @shuffle n xs@ randomly permutes the list @take n xs@ and returns
+-- the result.  All permutations of the elements of @xs@ are equally
+-- likely.  The results are undefined if @length xs@ is less than @n@.
+shuffle :: (MonadMC m) => Int -> [a] -> m [a]
+shuffle n (xs :: [a]) = 
+    shuffleInt n >>= \swaps -> (return . runST) $ do
+        marr <- newListArray (0,n-1) xs :: ST s (STArray s Int a)
+        mapM_ (swap marr) swaps
+        getElems marr
+  where
+    swap marr (i,j) | i == j    = return ()
+                    | otherwise = do
+        x <- unsafeRead marr i
+        y <- unsafeRead marr j
+        unsafeWrite marr i y
+        unsafeWrite marr j x
+{-# INLINE shuffle #-}
+
+shuffleUA :: (UA a, MonadMC m) => Int -> [a] -> m [a]
+shuffleUA n (xs :: [a]) =
+    shuffleInt n >>= \swaps -> (return . runST) $ do
+        marr <- newMU n
+        zipWithM_ (writeMU marr) [0 .. n-1] xs
+        mapM_ (swap marr) swaps
+        arr <- unsafeFreezeAllMU marr
+        return $ fromU arr
+  where
+    swap marr (i,j) | i == j    = return ()
+                    | otherwise = do
+        x <- readMU marr i
+        y <- readMU marr j
+        writeMU marr i y
+        writeMU marr j x
+{-# INLINE shuffleUA #-}        
+
+{-# RULES "shuffle/Double" forall n xs.
+              shuffle n (xs :: [Double]) = shuffleUA n xs #-}
+{-# RULES "shuffle/Int" forall n xs.
+              shuffle n (xs :: [Int]) = shuffleUA n xs #-}
+
+
+-- | @shuffleInt n@ generates a sequence of swaps equivalent to a
+-- uniformly-chosen random permutatation of the integers @{0, ..., n-1}@.  
+-- For an input of @n@, there are @n-1@ swaps, which are lazily generated.
+shuffleInt :: (MonadMC m) => Int -> m [(Int,Int)]
+shuffleInt n =
+    let shuffleIntHelp i | i <= 0    = return []
+                         | otherwise = unsafeInterleaveMC $ do
+            j   <- uniformInt i
+            ijs <- shuffleIntHelp (i-1)
+            return $ (i,j):ijs in
+    shuffleIntHelp n
+{-# INLINE shuffleInt #-}

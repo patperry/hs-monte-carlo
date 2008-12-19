@@ -20,7 +20,7 @@ extra-source-files: examples/Pi.hs, examplex/Sampling.hs tests/Main.hs
                     tests/Makefile
 
 library
-    build-depends:  base, mtl, gsl-random, uvector
+    build-depends:  array, base, mtl, gsl-random, uvector
     
     exposed-modules: 
             Control.Monad.MC
@@ -39,6 +39,7 @@ library
             FlexibleContexts, 
             FlexibleInstances, 
             MultiParamTypeClasses,
+            ScopedTypeVariables,
             TypeFamilies,
             TypeOperators,
             UndecidableInstances
