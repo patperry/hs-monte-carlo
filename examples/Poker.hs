@@ -83,8 +83,7 @@ main' reps =
         counts = repeatMCWith updateCounts emptyCounts reps deal
                  `evalMC` mt19937 seed in do
     printf "\n"
-    printf "%-13s %-7s   %-7s   %-14s\n" 
-        "    Hand" " Count" "Probability" "  95% Interval"
+    printf "    Hand       Count    Probability     95%% Interval   \n"
     printf "-------------------------------------------------------\n"
     forM_ ((reverse . Map.toAscList) counts) $ \(h,c) ->
         let n     = fromIntegral reps :: Double
