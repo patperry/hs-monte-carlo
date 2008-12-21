@@ -49,12 +49,12 @@ sampleWithWeights ws n xs =
     sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
--- | @sampleSubset n k xs@ samples a subset of size @k@ from @take n xs@.  The
+-- | @sampleSubset k n xs@ samples a subset of size @k@ from @take n xs@.  The
 -- subset elements will appear in the same order that they appear in @xs@.  The
 -- results are undefined if @k > n@ or if @length xs < n@.
 sampleSubset :: (MonadMC m) => Int -> Int -> [a] -> m [a]
-sampleSubset n k xs =
-    sampleListHelp n xs $ sampleIntSubset n k
+sampleSubset k n xs =
+    sampleListHelp n xs $ sampleIntSubset k n
 {-# INLINE sampleSubset #-}
 
 sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
@@ -104,12 +104,12 @@ sampleIntWithWeights ws n =
     in liftM (indexTable qjs) (uniform 0 1)
 {-# INLINE sampleIntWithWeights #-}
 
--- | @sampleIntSubset n k@ samples a subset of size @k@ from the 
+-- | @sampleIntSubset k n@ samples a subset of size @k@ from the 
 -- integers @{ 0, ..., n-1 }@.  The return value is a list of length @k@
 -- with the elements in the subset.  The elements will be in sorted order.
 -- Note also that the elements are lazily generated.
 sampleIntSubset :: (MonadMC m) => Int -> Int -> m [Int]
-sampleIntSubset n k | k < 0     = fail "negative subset size"
+sampleIntSubset k n | k < 0     = fail "negative subset size"
                     | k > n     = fail "subset size is too big"
                     | otherwise = sampleIntSubsetHelp 0 k
   where
@@ -167,10 +167,10 @@ shuffleUA n (xs :: [a]) =
 -- For an input of @n@, there are @n-1@ swaps, which are lazily generated.
 shuffleInt :: (MonadMC m) => Int -> m [(Int,Int)]
 shuffleInt n =
-    let shuffleIntHelp i | i <= 0    = return []
+    let shuffleIntHelp i | i <= 1    = return []
                          | otherwise = unsafeInterleaveMC $ do
             j   <- uniformInt i
             ijs <- shuffleIntHelp (i-1)
-            return $ (i,j):ijs in
+            return $ (i-1,j):ijs in
     shuffleIntHelp n
 {-# INLINE shuffleInt #-}
