@@ -19,16 +19,7 @@ binomial n p = let
 -- a binomial with the given parameters.
 binomialMean :: (MonadMC m) => Int -> Double -> Int -> m (Double,Double)
 binomialMean n p reps =
-    liftM interval95 $ repeatMC reps $ liftM fromIntegral (binomial n p)
-
--- | Get a 95% confidence interval for the mean based on the Normal
--- approximation.
-interval95 :: Summary -> (Double,Double)
-interval95 s =
-    let m     = sampleMean s
-        se    = sampleSE s
-        delta = 1.959964 * se in
-    (m-delta, m+delta)
+    liftM (sampleCI 0.95) $ repeatMC reps $ liftM fromIntegral (binomial n p)
 
 -- | Compute @reps@ 95% confidence intervals for the mean of an @(n,p)@
 -- binormal based on samples of the given size, and record the number

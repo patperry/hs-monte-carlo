@@ -20,10 +20,13 @@ module Control.Monad.MC.Summary (
     sampleVar,
     sampleSD,
     sampleSE,
+    sampleCI,
     sampleMin,
     sampleMax,
     
     ) where
+
+import GSL.Random.Dist( ugaussianPInv )
 
 -- | A type for storing summary statistics for a data set including
 -- sample size, min and max values, and first and second moments.
@@ -70,6 +73,19 @@ sampleSD s = sqrt (sampleVar s)
 -- | Get the sample standard error.
 sampleSE :: Summary -> Double
 sampleSE s = sqrt (sampleVar s / fromIntegral (sampleSize s))
+
+-- | Get a Central Limit Theorem-based confidence interval for the mean
+-- with the specified coverage level.  The level must be in the range @(0,1)@.
+sampleCI :: Double -> Summary -> (Double,Double)
+sampleCI level s | not (level > 0 && level < 1) = 
+                       error "level must be between 0 and 1"
+                 | otherwise =
+    let alpha = (0.5 - level) + 0.5
+        z     = -(ugaussianPInv (0.5*alpha))
+        se    = sampleSE s
+        delta = z*se
+        xbar  = sampleMean s
+    in (xbar-delta, xbar+delta)
 
 -- | Get the minimum of the sample.
 sampleMin :: Summary -> Double
