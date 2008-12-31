@@ -1,8 +1,8 @@
 dist
 *.hi
 *.o
-examples/Sampling
 examples/Pi
+examples/Poker
+examples/Sampling
 tests/test-mc
-
 
