@@ -49,9 +49,11 @@ sampleWithWeights ws n xs =
     sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
--- | @sampleSubset k n xs@ samples a subset of size @k@ from @take n xs@.  The
--- subset elements will appear in the same order that they appear in @xs@.  The
--- results are undefined if @k > n@ or if @length xs < n@.
+-- | @sampleSubset k n xs@ samples a subset of size @k@ from @take n xs@ by 
+-- sampling without replacement.  The return value is a list of length @k@ 
+-- with the elements in the subset in the order that they were sampled.  Note
+-- also that the elements are lazily generated.  The results are undefined 
+-- if @k > n@ or if @length xs < n@.
 sampleSubset :: (MonadMC m) => Int -> Int -> [a] -> m [a]
 sampleSubset k n xs =
     sampleListHelp n xs $ sampleIntSubset k n
@@ -104,21 +106,32 @@ sampleIntWithWeights ws n =
     in liftM (indexTable qjs) (uniform 0 1)
 {-# INLINE sampleIntWithWeights #-}
 
--- | @sampleIntSubset k n@ samples a subset of size @k@ from the 
--- integers @{ 0, ..., n-1 }@.  The return value is a list of length @k@
--- with the elements in the subset.  The elements will be in sorted order.
--- Note also that the elements are lazily generated.
+-- | @sampleIntSubset k n@ samples a subset of size @k@ by sampling without
+-- replacement from the integers @{ 0, ..., n-1 }@.  The return value is a 
+-- list of length @k@ with the elements in the subset in the order that they
+-- were sampled.  Note also that the elements are lazily generated.
 sampleIntSubset :: (MonadMC m) => Int -> Int -> m [Int]
 sampleIntSubset k n | k < 0     = fail "negative subset size"
                     | k > n     = fail "subset size is too big"
-                    | otherwise = sampleIntSubsetHelp 0 k
+                    | otherwise = do
+    us <- randomIndices k n
+    return $ runST $ do
+        ints <- newMU n
+        sequence_ [ writeMU ints i i | i <- [0 .. n-1] ]
+        sampleIntSubsetHelp ints us (n-1)
   where
-    sampleIntSubsetHelp i k' | k' == 0   = return []
-                             | otherwise = unsafeInterleaveMC $ do
-        u <- uniform 0 1
-        if fromIntegral (n-i) * u < fromIntegral k'
-            then liftM (i:) $ sampleIntSubsetHelp (i+1) (k'-1)
-            else              sampleIntSubsetHelp (i+1)  k'
+    randomIndices k' n' | k' == 0   = return []
+                        | otherwise = unsafeInterleaveMC $ do
+        u  <- uniformInt n'
+        us <- randomIndices (k'-1) (n'-1)
+        return (u:us)
+        
+    sampleIntSubsetHelp _    []     _  = return []
+    sampleIntSubsetHelp ints (u:us) n' = unsafeInterleaveST $ do
+        i <- readMU ints u
+        writeMU ints u (n'-1)
+        is <- sampleIntSubsetHelp ints us (n'-1)
+        return (i:is)
 {-# INLINE sampleIntSubset #-}
 
 -- | @shuffle n xs@ randomly permutes the list @take n xs@ and returns
