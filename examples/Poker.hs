@@ -11,8 +11,8 @@ import Text.Printf
 -- | Data types for representing cards.  An Ace has 'number' equal to @1@.
 -- Jack, Queen, and King have numbers @11@, @12@, and @13@, respectively.
 data Suit = Club | Diamond  | Heart | Spade deriving (Eq, Show)
-data Card = Card { number :: !Int 
-                 , suit   :: !Suit
+data Card = Card { number :: Int 
+                 , suit   :: Suit
                  }
           deriving (Eq, Show)
 
