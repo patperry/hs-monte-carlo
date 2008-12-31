@@ -83,13 +83,13 @@ main' reps =
         counts = repeatMCWith updateCounts emptyCounts reps deal
                  `evalMC` mt19937 seed in do
     printf "\n"
-    printf "    Hand       Count    Probability     95%% Interval   \n"
+    printf "    Hand       Count    Probability     99%% Interval   \n"
     printf "-------------------------------------------------------\n"
     forM_ ((reverse . Map.toAscList) counts) $ \(h,c) ->
         let n     = fromIntegral reps :: Double
             p     = fromIntegral c / n 
             se    = sqrt (p * (1 - p) / n)
-            delta = 1.959964 * se
+            delta = 2.575829 * se
             (l,u) = (p-delta, p+delta) in
         printf "%-13s %7d    %.6f   (%.6f,%.6f)\n" (show h) c p l u
     printf "\n"
