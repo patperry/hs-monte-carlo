@@ -260,11 +260,17 @@ normal mu sigma = MC $ normalHelp mu sigma
 {-# INLINE normal #-}
 
 normalHelp :: Double -> Double -> RNG -> (Double,RNG)
+normalHelp 0 1 r = unsafePerformIO $ do
+    x <- getUGaussianRatioMethod r
+    x `seq` return (x,r)
+normalHelp mu 1 r = unsafePerformIO $ do
+    x <- liftM (mu +) $ getUGaussianRatioMethod r
+    x `seq` return (x,r)
 normalHelp 0 sigma r = unsafePerformIO $ do
-    x <- getGaussian r sigma
+    x <- getGaussianRatioMethod r sigma
     x `seq` return (x,r)
 normalHelp mu sigma r = unsafePerformIO $ do
-    x <- liftM (mu +) $ getGaussian r sigma
+    x <- liftM (mu +) $ getGaussianRatioMethod r sigma
     x `seq` return (x,r)
 {-# NOINLINE normalHelp #-}
 
