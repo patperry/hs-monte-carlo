@@ -1,0 +1,10 @@
+
+Changes in 0.2:
+
+* More general type class, MonadMC, which allows all the functions to work
+  in both MC and MCT monads.
+
+* Functions to sample from discrete distributions.
+
+* Functions to sample subsets
+
