@@ -129,7 +129,7 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
     sampleIntSubsetHelp _    []     _  = return []
     sampleIntSubsetHelp ints (u:us) n' = unsafeInterleaveST $ do
         i <- readMU ints u
-        writeMU ints u (n'-1)
+        writeMU ints u =<< readMU ints n'
         is <- sampleIntSubsetHelp ints us (n'-1)
         return (i:is)
 {-# INLINE sampleIntSubset #-}
