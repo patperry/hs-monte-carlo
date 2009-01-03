@@ -23,6 +23,10 @@ module Control.Monad.MC.GSL (
     -- * Pure random number generator creation
     RNG,
     mt19937,
+    mt19937WithState,
+    rngName,
+    rngSize,
+    rngState,
 
     -- * Overloaded Monte Carlo monad interface
     module Control.Monad.MC.Class,
@@ -30,5 +34,6 @@ module Control.Monad.MC.GSL (
     ) where
 
 import Control.Monad.MC.GSLBase ( MC, runMC, evalMC, execMC,
-    MCT, runMCT, evalMCT, execMCT, RNG, mt19937 )
+    MCT, runMCT, evalMCT, execMCT, RNG, mt19937, mt19937WithState,
+    rngName, rngSize, rngState )
 import Control.Monad.MC.Class hiding ( RNG )
