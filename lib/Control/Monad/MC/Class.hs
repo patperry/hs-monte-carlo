@@ -6,6 +6,9 @@
 -- Maintainer : Patrick Perry <patperry@stanford.edu>
 -- Stability  : experimental
 --
+-- The abstract MonadMC interface and utility functions for Monte Carlo
+-- computations.
+--
 
 module Control.Monad.MC.Class (
     -- * The Monte Carlo monad type class

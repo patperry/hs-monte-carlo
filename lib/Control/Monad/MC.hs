@@ -6,6 +6,8 @@
 -- Maintainer : Patrick Perry <patperry@stanford.edu>
 -- Stability  : experimental
 --
+-- A monad and monad transformer for monte carlo computations built on top
+-- of the functions in the GNU Scientific Library.
 
 module Control.Monad.MC (
     module Control.Monad.MC.GSL
