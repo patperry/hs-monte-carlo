@@ -27,6 +27,10 @@ module Control.Monad.MC.GSLBase (
     -- * Pure random number generator creation
     RNG,
     mt19937,
+    mt19937WithState,
+    rngName,
+    rngSize,
+    rngState,
 
     -- * Getting and setting the random number generator
     getRNG,
@@ -47,21 +51,21 @@ import Control.Monad.State      ( MonadState(..) )
 import Control.Monad.Writer     ( MonadWriter(..) )
 import Control.Monad.Trans      ( MonadTrans(..), MonadIO(..) )
 import Data.Word
-import System.IO.Unsafe         ( unsafePerformIO )
+import System.IO.Unsafe         ( unsafePerformIO, unsafeInterleaveIO )
         
-import GSL.Random.Gen hiding ( mt19937 )
-import qualified GSL.Random.Gen as Gen
+import qualified GSL.Random.Gen as GSL
 import GSL.Random.Dist
 
 -- | A Monte Carlo monad with an internal random number generator.
-newtype MC a = MC (RNG -> (a,RNG))
+newtype MC a = MC (GSL.RNG -> IO a)
 
 -- | Run this Monte Carlo monad with the given initial random number generator,
 -- getting the result and the new random number generator.
 runMC :: MC a -> RNG -> (a, RNG)
-runMC (MC g) r =
-    let r' = unsafePerformIO $ cloneRNG r
-    in r' `seq` g r'
+runMC (MC g) (RNG r) = unsafePerformIO $ do
+    r' <- GSL.cloneRNG r
+    a  <- g r'
+    return (a,RNG r')
 {-# NOINLINE runMC #-}
     
 -- | Evaluate this Monte Carlo monad and throw away the final random number
@@ -75,36 +79,36 @@ execMC :: MC a -> RNG -> RNG
 execMC g r = snd $ runMC g r
 
 unsafeInterleaveMC :: MC a -> MC a
-unsafeInterleaveMC (MC m) = MC $ \r -> let
-    (a,_) = m r
-    in (a,r)
-
+unsafeInterleaveMC (MC m) = MC $ \r ->
+    unsafeInterleaveIO (m r)
 
 instance Functor MC where
-    fmap f (MC m) = MC $ \r -> let
-        (a,r') = m r
-        in (f a, r')
+    fmap f (MC m) = MC $ \r ->
+        fmap f (m r)
 
 instance Monad MC where
-    return a = MC $ \r -> (a,r)
+    return a = MC $ \_ -> return a
     {-# INLINE return #-}
     
     (MC m) >>= k =
-        MC $ \r -> let
-            (a, r') = m r
-            (MC m') = k a
-            in m' r'
+        MC $ \r -> m r >>= \a ->
+            let (MC m') = k a
+            in m' r
     {-# INLINE (>>=) #-}
+    
+    fail s = MC $ \_ -> fail s
+    {-# INLINE fail #-}
 
 -- | A parameterizable Monte Carlo monad for encapsulating an inner
 -- monad.
-newtype MCT m a = MCT (RNG -> m (a,RNG))
+newtype MCT m a = MCT (GSL.RNG -> IO (m a))
 
 -- | Similar to 'runMC'.
 runMCT :: (Monad m) => MCT m a -> RNG -> m (a,RNG)
-runMCT (MCT g) r =
-    let r' = unsafePerformIO $ cloneRNG r
-    in r' `seq` g r'
+runMCT (MCT g) (RNG r) = unsafePerformIO $ do
+    r' <- GSL.cloneRNG r
+    ma <- g r' 
+    return (ma >>= \a -> return (a, RNG r'))
 {-# NOINLINE runMCT #-}
 
 -- | Similar to 'evalMC'.
@@ -121,60 +125,69 @@ execMCT g r = do
 
 -- | Take a Monte Carlo computations and lift it to an MCT computation.
 liftMCT :: (Monad m) => MC a -> MCT m a
-liftMCT (MC m) = MCT $ return . m
+liftMCT (MC g) = MCT $ \r -> do
+    a <- g r
+    return (return a)
 {-# INLINE liftMCT #-}
 
 unsafeInterleaveMCT :: (Monad m) => MCT m a -> MCT m a
-unsafeInterleaveMCT (MCT g) = MCT $ \r -> do
-    ~(a,_) <- g r
-    return (a,r)
+unsafeInterleaveMCT (MCT g) = MCT $ \r -> 
+    unsafeInterleaveIO (g r)
 {-# INLINE unsafeInterleaveMCT #-}
 
 instance (Monad m) => Functor (MCT m) where
-    fmap f (MCT m) = MCT $ \r -> do
-        ~(x, r') <- m r
-        return (f x, r') 
+    fmap f (MCT g) = MCT $ \r -> do
+        ma <- g r
+        return (ma >>= return . f)
     {-# INLINE fmap #-}   
 
 instance (Monad m) => Monad (MCT m) where
-    return a = MCT $ \r -> return (a,r)
+    return a = MCT $ \_ -> return (return a)
     {-# INLINE return #-}
     
-    (MCT m) >>= k =
+    (MCT g) >>= k =
         MCT $ \r -> do
-            ~(a,r') <- m r
-            let (MCT m') = k a
-            m' r'
-    {-# INLINE (>>=) #-}
+            ma <- g r
+            return $ ma >>= \a ->
+                let (MCT m') = k a
+                in unsafePerformIO $ m' r
+    {-# NOINLINE (>>=) #-}
             
     fail str = MCT $ \_ -> fail str
+    {-# INLINE fail #-}
 
 instance (MonadPlus m) => MonadPlus (MCT m) where
     mzero = MCT $ \_ -> mzero
     {-# INLINE mzero #-}
         
     (MCT m) `mplus` (MCT n) = 
-        MCT $ \r ->
-            let r' = unsafePerformIO $ cloneRNG r
-            in r' `seq` (m r `mplus` n r')
-    {-# NOINLINE mplus #-}
+        MCT $ \r -> do
+            r' <- GSL.cloneRNG r
+            mr <- m r
+            nr <- n r'
+            return (mr `mplus` nr)
 
 instance MonadTrans MCT where
-    lift m = MCT $ \r -> do
-        a <- m
-        return (a,r)
+    lift m = MCT $ \_ -> return m
     {-# INLINE lift #-}
 
 instance (MonadCont m) => MonadCont (MCT m) where
     callCC f = MCT $ \r ->
-        callCC $ \c ->
-        let (MCT m) = (f (\a -> MCT $ \r' -> c (a, r'))) 
-        in m r
+        return $ callCC $ \k ->
+            let (MCT m) = f (\a -> MCT $ \_ -> return (k a))
+            in unsafePerformIO (m r)
+    {-# NOINLINE callCC #-}
 
 instance (MonadError e m) => MonadError e (MCT m) where
-    throwError              = lift . throwError
-    (MCT m) `catchError` h = MCT $ \r -> 
-        m r `catchError` \e -> let (MCT m') = h e in m' r
+    throwError             = lift . throwError
+    {-# INLINE throwError #-}
+    
+    (MCT g) `catchError` h = MCT $ \r -> do
+        ma <- g r
+        return $ ma `catchError` \e -> 
+            let (MCT m') = h e 
+            in unsafePerformIO (m' r)
+    {-# NOINLINE catchError #-}
 
 instance (MonadIO m) => MonadIO (MCT m) where
     liftIO = lift . liftIO
@@ -182,104 +195,93 @@ instance (MonadIO m) => MonadIO (MCT m) where
 
 instance (MonadReader r m) => MonadReader r (MCT m) where
     ask              = lift ask
-    local f (MCT m) = MCT $ \r ->
-        local f (m r)
+    {-# INLINE ask #-}
+    
+    local f (MCT g) = MCT $ \r -> do
+        ma <- g r
+        return $ local f ma
+    {-# INLINE local #-}
 
 instance (MonadState s m) => MonadState s (MCT m) where
     get = lift get 
+    {-# INLINE get #-}
+    
     put = lift . put
+    {-# INLINE put #-}
 
 instance (MonadWriter w m) => MonadWriter w (MCT m) where
-    tell            = lift . tell
-    listen (MCT m) = MCT $ \r -> do
-        ~((a,r'),w) <- listen (m r)
-        return ((a,w),r')
-    pass (MCT m) = MCT $ \r -> pass $ do
-        ~((a,f),r') <- m r
-        return ((a,r'),f)
+    tell           = lift . tell
+    {-# INLINE tell #-}
+    
+    listen (MCT g) = MCT $ \r -> do
+        ma <- g r
+        return (listen ma)
+    {-# INLINE listen #-}
+    
+    pass (MCT g) = MCT $ \r -> do
+        maf <- g r
+        return (pass maf)
+    {-# INLINE pass #-}
 
 ---------------------------- Random Number Generators -----------------------
 
+-- | The random number generator type associated with 'MC' and 'MCT'.
+newtype RNG = RNG GSL.RNG
+
+-- | Get the name of the random number generator algorithm.
+rngName :: RNG -> String
+rngName (RNG r) = unsafePerformIO $ GSL.getName r
+{-# NOINLINE rngName #-}
+
+-- | Get the size of the generator state, in bytes.
+rngSize :: RNG -> Int
+rngSize (RNG r) = fromIntegral $ unsafePerformIO $ GSL.getSize r
+{-# NOINLINE rngSize #-}
+
+-- | Get the state of the generator.
+rngState :: RNG -> [Word8]
+rngState (RNG r) = unsafePerformIO $ GSL.getState r
+{-# NOINLINE rngState #-}
+
 getRNG :: MC RNG
-getRNG = MC $ getHelp 
+getRNG = MC (\r -> liftM RNG $ GSL.cloneRNG r)
 {-# INLINE getRNG #-}
 
-getHelp :: RNG -> (RNG,RNG)
-getHelp r = unsafePerformIO $ do
-    r' <- cloneRNG r
-    r' `seq` return (r',r)
-{-# NOINLINE getHelp #-}
-
 setRNG :: RNG -> MC ()
-setRNG r' = MC $ setHelp r'
+setRNG (RNG r') = MC $ \r -> GSL.copyRNG r r'
 {-# INLINE setRNG #-}
-
-setHelp :: RNG -> RNG -> ((),RNG)
-setHelp r' r = unsafePerformIO $ do
-    io <- copyRNG r r'
-    io `seq` return ((),r)
-{-# NOINLINE setHelp #-}
 
 -- | Get a Mersenne Twister random number generator seeded with the given
 -- value.
 mt19937 :: Word64 -> RNG
 mt19937 s = unsafePerformIO $ do
-    r <- newRNG Gen.mt19937
-    setSeed r s
-    return r
+    r <- GSL.newRNG GSL.mt19937
+    GSL.setSeed r s
+    return (RNG r)
 {-# NOINLINE mt19937 #-}
 
+-- | Get a Mersenne Twister seeded with the given state.
+mt19937WithState :: [Word8] -> RNG
+mt19937WithState xs = unsafePerformIO $ do
+    r <- GSL.newRNG GSL.mt19937
+    GSL.setState r xs
+    return (RNG r)
+{-# NOINLINE mt19937WithState #-}
 
 -------------------------- Random Number Distributions ----------------------
 
 uniform :: Double -> Double -> MC Double
-uniform a b = MC $ uniformHelp a b
-{-# INLINE uniform #-}
-
-uniformHelp :: Double -> Double -> RNG -> (Double,RNG)
-uniformHelp 0 1 r = unsafePerformIO $ do
-    x <- getUniform r
-    x `seq` return (x,r)
-uniformHelp a b r = unsafePerformIO $ do
-    x <- getFlat r a b
-    x `seq` return (x,r)
-{-# NOINLINE uniformHelp #-}
+uniform 0 1 = MC $ \r -> GSL.getUniform r
+uniform a b = MC $ \r -> getFlat r a b
     
 uniformInt :: Int -> MC Int
-uniformInt n = MC $ uniformIntHelp n
-{-# INLINE uniformInt #-}
-
-uniformIntHelp :: Int -> RNG -> (Int,RNG)
-uniformIntHelp n r = unsafePerformIO $ do
-    x <- getUniformInt r n
-    x `seq` return (x,r)
-{-# NOINLINE uniformIntHelp #-}
+uniformInt n = MC $ \r -> GSL.getUniformInt r n
 
 normal :: Double -> Double -> MC Double
-normal mu sigma = MC $ normalHelp mu sigma
-{-# INLINE normal #-}
-
-normalHelp :: Double -> Double -> RNG -> (Double,RNG)
-normalHelp 0 1 r = unsafePerformIO $ do
-    x <- getUGaussianRatioMethod r
-    x `seq` return (x,r)
-normalHelp mu 1 r = unsafePerformIO $ do
-    x <- liftM (mu +) $ getUGaussianRatioMethod r
-    x `seq` return (x,r)
-normalHelp 0 sigma r = unsafePerformIO $ do
-    x <- getGaussianRatioMethod r sigma
-    x `seq` return (x,r)
-normalHelp mu sigma r = unsafePerformIO $ do
-    x <- liftM (mu +) $ getGaussianRatioMethod r sigma
-    x `seq` return (x,r)
-{-# NOINLINE normalHelp #-}
+normal 0  1     = MC $ \r -> getUGaussianRatioMethod r
+normal mu 1     = MC $ \r -> liftM (mu +) (getUGaussianRatioMethod r)
+normal 0  sigma = MC $ \r -> getGaussianRatioMethod r sigma
+normal mu sigma = MC $ \r -> liftM (mu +) (getGaussianRatioMethod r sigma)
 
 poisson :: Double -> MC Int
-poisson mu = MC $ poissonHelp mu
-{-# INLINE poisson #-}
-
-poissonHelp :: Double -> RNG -> (Int,RNG)
-poissonHelp mu r = unsafePerformIO $ do
-    x <- getPoisson r mu
-    x `seq` return (x,r)
-{-# NOINLINE poissonHelp #-}
+poisson mu = MC $ \r -> getPoisson r mu
