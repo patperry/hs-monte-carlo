@@ -1,4 +1,17 @@
 
+Changes in 0.3:
+
+* The function `sample`, `sampleWithWeights`, `sampleSubset`, and
+  `shuffle` no longer require that you explicitly pass in the length.
+
+* The pure RNG is now a newtype, so you can't use the functions from
+  GLS.Random.Gen on it anymore.
+  
+* The internals of the monad have been cleaned up.  IO is used internally
+  instead of `seq` calls and `unsafePerformIO` everywhere.  This results in
+  a modest performance boost.
+
+
 Changes in 0.2:
 
 * More general type class, MonadMC, which allows all the functions to work
