@@ -34,29 +34,30 @@ import Data.Array.IArray
 import Data.Array.ST
 import Data.Array.Vector
 
--- | @sample n xs@ samples a value uniformly from @take n xs@.  The results
--- are undefined if @length xs@ is less than @n@.
-sample :: (MonadMC m) => Int -> [a] -> m a
-sample n xs = 
-    sampleHelp n xs $ sampleInt n
+-- | @sample xs@ samples a value uniformly from the elements of @xs@.  The
+-- results are undefined if @length xs@ is zero.
+sample :: (MonadMC m) => [a] -> m a
+sample xs = let
+    n = length xs
+    in sampleHelp n xs $ sampleInt n
 {-# INLINE sample #-}
 
--- | @sampleWithWeights ws n xs@ samples a value from @take n xs@, putting
--- weight @ws !! i@ on element @xs !! i@.  The results
--- are undefined if @length xs@ or @length ws@ is less than @n@.
-sampleWithWeights :: (MonadMC m) => [Double] -> Int -> [a] -> m a
-sampleWithWeights ws n xs = 
-    sampleHelp n xs $ sampleIntWithWeights ws n
+-- | @sampleWithWeights ws n xs@ samples a value from @xs@, putting
+-- weight @ws !! i@ on element @xs !! i@.
+sampleWithWeights :: (MonadMC m) => [Double] -> [a] -> m a
+sampleWithWeights ws xs = let
+    n = length ws
+    in sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
--- | @sampleSubset k n xs@ samples a subset of size @k@ from @take n xs@ by 
+-- | @sampleSubset k xs@ samples a subset of size @k@ from @xs@ by 
 -- sampling without replacement.  The return value is a list of length @k@ 
 -- with the elements in the subset in the order that they were sampled.  Note
--- also that the elements are lazily generated.  The results are undefined 
--- if @k > n@ or if @length xs < n@.
-sampleSubset :: (MonadMC m) => Int -> Int -> [a] -> m [a]
-sampleSubset k n xs =
-    sampleListHelp n xs $ sampleIntSubset k n
+-- also that the elements are lazily generated.
+sampleSubset :: (MonadMC m) => Int -> [a] -> m [a]
+sampleSubset k xs = let
+    n = length xs
+    in sampleListHelp n xs $ sampleIntSubset k n
 {-# INLINE sampleSubset #-}
 
 sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
@@ -134,15 +135,16 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
         return (i:is)
 {-# INLINE sampleIntSubset #-}
 
--- | @shuffle n xs@ randomly permutes the list @take n xs@ and returns
+-- | @shuffle xs@ randomly permutes the list @xs@ and returns
 -- the result.  All permutations of the elements of @xs@ are equally
--- likely.  The results are undefined if @length xs@ is less than @n@.
-shuffle :: (MonadMC m) => Int -> [a] -> m [a]
-shuffle n (xs :: [a]) = 
-    shuffleInt n >>= \swaps -> (return . runST) $ do
-        marr <- newListArray (0,n-1) xs :: ST s (STArray s Int a)
-        mapM_ (swap marr) swaps
-        getElems marr
+-- likely.
+shuffle :: (MonadMC m) => [a] -> m [a]
+shuffle (xs :: [a]) = let
+    n = length xs
+    in shuffleInt n >>= \swaps -> (return . runST) $ do
+           marr <- newListArray (0,n-1) xs :: ST s (STArray s Int a)
+           mapM_ (swap marr) swaps
+           getElems marr
   where
     swap marr (i,j) | i == j    = return ()
                     | otherwise = do
@@ -152,14 +154,15 @@ shuffle n (xs :: [a]) =
         unsafeWrite marr j x
 {-# INLINE shuffle #-}
 
-shuffleUA :: (UA a, MonadMC m) => Int -> [a] -> m [a]
-shuffleUA n (xs :: [a]) =
-    shuffleInt n >>= \swaps -> (return . runST) $ do
-        marr <- newMU n
-        zipWithM_ (writeMU marr) [0 .. n-1] xs
-        mapM_ (swap marr) swaps
-        arr <- unsafeFreezeAllMU marr
-        return $ fromU arr
+shuffleUA :: (UA a, MonadMC m) => [a] -> m [a]
+shuffleUA (xs :: [a]) = let
+    n = length xs
+    in shuffleInt n >>= \swaps -> (return . runST) $ do
+           marr <- newMU n
+           zipWithM_ (writeMU marr) [0 .. n-1] xs
+           mapM_ (swap marr) swaps
+           arr <- unsafeFreezeAllMU marr
+           return $ fromU arr
   where
     swap marr (i,j) | i == j    = return ()
                     | otherwise = do
@@ -169,10 +172,10 @@ shuffleUA n (xs :: [a]) =
         writeMU marr j x
 {-# INLINE shuffleUA #-}        
 
-{-# RULES "shuffle/Double" forall n xs.
-              shuffle n (xs :: [Double]) = shuffleUA n xs #-}
-{-# RULES "shuffle/Int" forall n xs.
-              shuffle n (xs :: [Int]) = shuffleUA n xs #-}
+{-# RULES "shuffle/Double" forall xs.
+              shuffle (xs :: [Double]) = shuffleUA xs #-}
+{-# RULES "shuffle/Int" forall xs.
+              shuffle (xs :: [Int]) = shuffleUA xs #-}
 
 
 -- | @shuffleInt n@ generates a sequence of swaps equivalent to a
