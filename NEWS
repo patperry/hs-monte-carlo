@@ -1,6 +1,8 @@
 
 Changes in 0.3:
 
+* Build fix for 6.8.2 from Robert Gunst.
+
 * The function `sample`, `sampleWithWeights`, `sampleSubset`, and
   `shuffle` no longer require that you explicitly pass in the length.
 

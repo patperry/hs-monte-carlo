@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -XPatternSignatures -fno-warn-deprecated-flags#-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Sample
