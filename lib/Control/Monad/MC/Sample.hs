@@ -1,5 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -XPatternSignatures -fno-warn-deprecated-flags#-}
+#if defined(__GLASGOW_HASKELL__)
+#if __GLASGOW_HASKELL__ < 610
+{-# OPTIONS_GHC -XPatternSignatures #-}
+#endif
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Sample

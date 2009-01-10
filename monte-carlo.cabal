@@ -36,6 +36,7 @@ library
             Control.Monad.MC.Walker
           
     extensions:
+            CPP,
             FlexibleContexts, 
             FlexibleInstances, 
             MultiParamTypeClasses,
