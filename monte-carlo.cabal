@@ -20,7 +20,7 @@ extra-source-files: examples/Pi.hs, examples/Sampling.hs examples/Poker.hs
                     tests/Main.hs tests/Makefile
 
 library
-    build-depends:  array, base, mtl, gsl-random >=0.3, uvector
+    build-depends:  array, base, mtl, gsl-random >=0.3.1, uvector
     
     exposed-modules: 
             Control.Monad.MC

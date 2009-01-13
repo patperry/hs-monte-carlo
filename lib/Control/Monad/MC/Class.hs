@@ -23,6 +23,10 @@ module Control.Monad.MC.Class (
     uniform,
     uniformInt,
     normal,
+    exponential,
+    levy,
+    levySkew,
+    bernoulli,
     poisson,
     
     module Control.Monad.MC.Sample,

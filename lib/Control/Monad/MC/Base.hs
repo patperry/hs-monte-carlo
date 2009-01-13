@@ -8,13 +8,10 @@
 -- Stability  : experimental
 --
 
-module Control.Monad.MC.Base (
-    -- * MonadMC type classes
-    MonadMC(..),
-    HasRNG(..),
-    
-    ) where
+module Control.Monad.MC.Base
+    where
 
+import Control.Monad
 import qualified Control.Monad.MC.GSLBase as GSL
 
 class HasRNG m where
@@ -39,6 +36,9 @@ class (Monad m, HasRNG m) => MonadMC m where
     -- @mu@ and standard deviation @sigma@.
     normal :: Double -> Double -> m Double
 
+    -- | @exponential mu@ generates an Exponential variate with mean @mu@.
+    exponential :: Double -> m Double
+
     -- | @levy c alpha@ gets a Levy alpha-stable variate with scale @c@ and
     -- exponent @alpha@.  The algorithm only works for @0 < alpha <= 2@.
     levy :: Double -> Double -> m Double
@@ -57,6 +57,11 @@ class (Monad m, HasRNG m) => MonadMC m where
     unsafeInterleaveMC :: m a -> m a
 
 
+-- | Generate 'True' events with the given probability
+bernoulli :: (MonadMC m) => Double -> m Bool
+bernoulli p = liftM (< p) $ uniform 0 1
+{-# INLINE bernoulli #-}
+
 ------------------------------- Instances -----------------------------------
 
 instance HasRNG GSL.MC where
@@ -73,6 +78,8 @@ instance MonadMC GSL.MC where
     {-# INLINE uniformInt #-}
     normal = GSL.normal
     {-# INLINE normal #-}
+    exponential = GSL.exponential
+    {-# INLINE exponential #-}
     levy = GSL.levy
     {-# INLINE levy #-}
     levySkew = GSL.levySkew
@@ -96,6 +103,8 @@ instance (Monad m) => MonadMC (GSL.MCT m) where
     {-# INLINE uniformInt #-}
     normal mu sigma = GSL.liftMCT $ GSL.normal mu sigma
     {-# INLINE normal #-}
+    exponential mu = GSL.liftMCT $ GSL.exponential mu
+    {-# INLINE exponential #-}    
     levy c alpha = GSL.liftMCT $ GSL.levy c alpha
     {-# INLINE levy #-}
     levySkew c alpha beta = GSL.liftMCT $ GSL.levySkew c alpha beta

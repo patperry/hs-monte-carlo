@@ -41,6 +41,7 @@ module Control.Monad.MC.GSLBase (
     uniform,
     uniformInt,
     normal,
+    exponential,
     levy,
     levySkew,
     poisson,
@@ -288,6 +289,9 @@ normal 0  1     = MC $ \r -> getUGaussianRatioMethod r
 normal mu 1     = MC $ \r -> liftM (mu +) (getUGaussianRatioMethod r)
 normal 0  sigma = MC $ \r -> getGaussianRatioMethod r sigma
 normal mu sigma = MC $ \r -> liftM (mu +) (getGaussianRatioMethod r sigma)
+
+exponential :: Double -> MC Double
+exponential mu = MC $ \r -> getExponential r mu
 
 poisson :: Double -> MC Int
 poisson mu = MC $ \r -> getPoisson r mu
