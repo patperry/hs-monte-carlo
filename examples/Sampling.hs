@@ -19,14 +19,14 @@ binomial n p = let
 -- a binomial with the given parameters.
 binomialMean :: (MonadMC m) => Int -> Double -> Int -> m (Double,Double)
 binomialMean n p reps =
-    liftM (sampleCI 0.95) $ repeatMC reps $ liftM fromIntegral (binomial n p)
+    liftM (sampleCI 0.95) $ replicateMC reps $ liftM fromIntegral (binomial n p)
 
 -- | Compute @reps@ 95% confidence intervals for the mean of an @(n,p)@
 -- binormal based on samples of the given size, and record the number
 -- of intervals that contain the true mean.
 coverage :: (MonadMC m) => Int -> Double -> Int -> Int -> m Int
 coverage n p size reps =
-    repeatMCWith
+    replicateMCWith
         (\c ci -> if mu `inInterval` ci then c+1 else c)
         0
         reps

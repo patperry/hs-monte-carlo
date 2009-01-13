@@ -1,6 +1,10 @@
 
 Changes in 0.3:
 
+* Introduce `repeatMC`, which produces an infinite stream of values.
+
+* Rename `repeatMC/repeatMCWith` to `replicateMC/replicateMCWith`
+
 * Build fix for 6.8.2 from Robert Gunst.
 
 * The function `sample`, `sampleWithWeights`, `sampleSubset`, and

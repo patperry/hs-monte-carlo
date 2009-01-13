@@ -26,6 +26,7 @@ module Control.Monad.MC.GSLBase (
 
     -- * Pure random number generator creation
     RNG,
+    Seed,
     mt19937,
     mt19937WithState,
     rngName,
@@ -227,6 +228,9 @@ instance (MonadWriter w m) => MonadWriter w (MCT m) where
 
 -- | The random number generator type associated with 'MC' and 'MCT'.
 newtype RNG = RNG GSL.RNG
+
+-- | The seed type for the random number generators.
+type Seed = Word64
 
 -- | Get the name of the random number generator algorithm.
 rngName :: RNG -> String

@@ -80,7 +80,7 @@ main = do
 
 main' reps =
     let seed   = 0
-        counts = repeatMCWith updateCounts emptyCounts reps deal
+        counts = replicateMCWith updateCounts emptyCounts reps deal
                  `evalMC` mt19937 seed in do
     printf "\n"
     printf "    Hand       Count    Probability     99%% Interval   \n"
