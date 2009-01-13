@@ -1,6 +1,10 @@
 
 Changes in 0.3:
 
+* Add Summary.Bool for indicators.
+
+* Move Summary to Data.Summary
+
 * Introduce `repeatMC`, which produces an infinite (lazy) stream of values, and
   `replicateMC`, which produces a lazy list of specified length.
 
