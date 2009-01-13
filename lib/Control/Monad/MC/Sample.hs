@@ -47,11 +47,12 @@ sample xs = let
     in sampleHelp n xs $ sampleInt n
 {-# INLINE sample #-}
 
--- | @sampleWithWeights ws n xs@ samples a value from @xs@, putting
--- weight @ws !! i@ on element @xs !! i@.
-sampleWithWeights :: (MonadMC m) => [Double] -> [a] -> m a
-sampleWithWeights ws xs = let
-    n = length ws
+-- | @sampleWithWeights wxs@ samples a value from the list with the given
+-- weight.
+sampleWithWeights :: (MonadMC m) => [(Double, a)] -> m a
+sampleWithWeights wxs = let
+    (ws,xs) = unzip wxs
+    n       = length xs
     in sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
