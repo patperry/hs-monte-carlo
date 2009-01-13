@@ -22,6 +22,7 @@ module Control.Monad.MC.GSL (
 
     -- * Pure random number generator creation
     RNG,
+    Seed,
     mt19937,
     mt19937WithState,
     rngName,
@@ -34,6 +35,6 @@ module Control.Monad.MC.GSL (
     ) where
 
 import Control.Monad.MC.GSLBase ( MC, runMC, evalMC, execMC,
-    MCT, runMCT, evalMCT, execMCT, RNG, mt19937, mt19937WithState,
+    MCT, runMCT, evalMCT, execMCT, RNG, Seed, mt19937, mt19937WithState,
     rngName, rngSize, rngState )
 import Control.Monad.MC.Class hiding ( RNG )
