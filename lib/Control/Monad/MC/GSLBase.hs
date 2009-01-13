@@ -41,6 +41,8 @@ module Control.Monad.MC.GSLBase (
     uniform,
     uniformInt,
     normal,
+    levy,
+    levySkew,
     poisson,
     ) where
 
@@ -257,7 +259,7 @@ setRNG (RNG r') = MC $ \r -> GSL.copyRNG r r'
 
 -- | Get a Mersenne Twister random number generator seeded with the given
 -- value.
-mt19937 :: Word64 -> RNG
+mt19937 :: Seed -> RNG
 mt19937 s = unsafePerformIO $ do
     r <- GSL.newRNG GSL.mt19937
     GSL.setSeed r s
@@ -289,3 +291,9 @@ normal mu sigma = MC $ \r -> liftM (mu +) (getGaussianRatioMethod r sigma)
 
 poisson :: Double -> MC Int
 poisson mu = MC $ \r -> getPoisson r mu
+
+levy :: Double -> Double -> MC Double
+levy c alpha = MC $ \r -> getLevy r c alpha
+
+levySkew :: Double -> Double -> Double -> MC Double
+levySkew c alpha beta = MC $ \r -> getLevySkew r c alpha beta

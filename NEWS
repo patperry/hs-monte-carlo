@@ -1,6 +1,8 @@
 
 Changes in 0.3:
 
+* Add Levy alpha-Stable distributions.
+
 * Add Summary.Bool for indicators.
 
 * Move Summary to Data.Summary

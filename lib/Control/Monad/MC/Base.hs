@@ -38,6 +38,16 @@ class (Monad m, HasRNG m) => MonadMC m where
     -- | @normal mu sigma@ generates a Normal random variable with mean
     -- @mu@ and standard deviation @sigma@.
     normal :: Double -> Double -> m Double
+
+    -- | @levy c alpha@ gets a Levy alpha-stable variate with scale @c@ and
+    -- exponent @alpha@.  The algorithm only works for @0 < alpha <= 2@.
+    levy :: Double -> Double -> m Double
+
+    -- | @levySkew c alpha beta @ gets a skew Levy alpha-stable variate 
+    -- with scale @c@, exponent @alpha@, and skewness @beta@.  The skew
+    -- parameter must lie in the range @[-1,1]@.  The algorithm only works
+    -- for @0 < alpha <= 2@.
+    levySkew :: Double -> Double -> Double -> m Double
     
     -- | @poisson mu@ generates a Poisson random variable with mean @mu@.
     poisson :: Double -> m Int
@@ -63,6 +73,10 @@ instance MonadMC GSL.MC where
     {-# INLINE uniformInt #-}
     normal = GSL.normal
     {-# INLINE normal #-}
+    levy = GSL.levy
+    {-# INLINE levy #-}
+    levySkew = GSL.levySkew
+    {-# INLINE levySkew #-}
     poisson = GSL.poisson
     {-# INLINE poisson #-}
     unsafeInterleaveMC = GSL.unsafeInterleaveMC
@@ -82,6 +96,10 @@ instance (Monad m) => MonadMC (GSL.MCT m) where
     {-# INLINE uniformInt #-}
     normal mu sigma = GSL.liftMCT $ GSL.normal mu sigma
     {-# INLINE normal #-}
+    levy c alpha = GSL.liftMCT $ GSL.levy c alpha
+    {-# INLINE levy #-}
+    levySkew c alpha beta = GSL.liftMCT $ GSL.levySkew c alpha beta
+    {-# INLINE levySkew #-}
     poisson mu = GSL.liftMCT $ GSL.poisson mu
     {-# INLINE poisson #-}
     unsafeInterleaveMC = GSL.unsafeInterleaveMCT
