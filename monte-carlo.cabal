@@ -20,11 +20,14 @@ extra-source-files: examples/Pi.hs, examples/Sampling.hs examples/Poker.hs
                     tests/Main.hs tests/Makefile
 
 library
-    build-depends:  array, base, mtl, gsl-random >=0.2.3, uvector
+    build-depends:  array, base, mtl, gsl-random >=0.3, uvector
     
     exposed-modules: 
             Control.Monad.MC
             Control.Monad.MC.Class
+            Data.Summary
+            Data.Summary.Bool
+            Data.Summary.Double
             
     other-modules:
             Control.Monad.MC.Base
@@ -32,8 +35,8 @@ library
             Control.Monad.MC.GSLBase
             Control.Monad.MC.Repeat
             Control.Monad.MC.Sample
-            Control.Monad.MC.Summary
             Control.Monad.MC.Walker
+            Data.Summary.Common
           
     extensions:
             CPP,

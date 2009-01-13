@@ -5,7 +5,6 @@ import Control.Monad.MC
 import Data.List
 import Data.Map( Map )
 import qualified Data.Map as Map
-import System.Environment
 import Text.Printf
     
 -- | Data types for representing cards.  An Ace has 'number' equal to @1@.
@@ -22,6 +21,12 @@ ace   = 1
 jack  = 11
 queen = 12
 king  = 13
+
+-- | Get a list of cards that make up a 52-card deck.
+deck :: [Card]
+deck = [ Card i s 
+       | i <- [ ace..king ]
+       , s <- [ Club, Diamond, Heart, Spade ] ]
 
 -- | A type for the various poker hands.
 data Hand = HighCard  | Pair | TwoPair | ThreeOfAKind | Straight | Flush
@@ -54,10 +59,6 @@ hand cs =
     matches = (sort . map length . group) (x:xs)
 
     
--- | Get a list of cards that make up a 52-card deck.
-deck :: [Card]
-deck = [ Card i s | i <- [ 1..13 ], s <- [ Club, Diamond, Heart, Spade ] ]
-
 -- | Deal a five-card hand by choosing a random subset of the deck.
 deal :: (MonadMC m) => m [Card]
 deal = sampleSubset 5 deck
@@ -74,22 +75,20 @@ updateCounts :: HandCounts -> [Card] -> HandCounts
 updateCounts counts cs = Map.insertWith' (+) (hand cs) 1 counts
 
 
-main = do
-    [reps] <- map read `fmap` getArgs
-    main' reps
-
-main' reps =
+main =
     let seed   = 0
-        counts = replicateMCWith updateCounts emptyCounts reps deal
-                 `evalMC` mt19937 seed in do
-    printf "\n"
-    printf "    Hand       Count    Probability     99%% Interval   \n"
-    printf "-------------------------------------------------------\n"
-    forM_ ((reverse . Map.toAscList) counts) $ \(h,c) ->
-        let n     = fromIntegral reps :: Double
-            p     = fromIntegral c / n 
-            se    = sqrt (p * (1 - p) / n)
-            delta = 2.575829 * se
-            (l,u) = (p-delta, p+delta) in
-        printf "%-13s %7d    %.6f   (%.6f,%.6f)\n" (show h) c p l u
-    printf "\n"
+        reps   = 100000
+        counts = foldl' updateCounts emptyCounts $ 
+                     replicateMC reps deal `evalMC` mt19937 seed 
+    in do
+        printf "\n"
+        printf "    Hand       Count    Probability     99%% Interval   \n"
+        printf "-------------------------------------------------------\n"
+        forM_ ((reverse . Map.toAscList) counts) $ \(h,c) ->
+            let n     = fromIntegral reps :: Double
+                p     = fromIntegral c / n 
+                se    = sqrt (p * (1 - p) / n)
+                delta = 2.575829 * se
+                (l,u) = (p-delta, p+delta) in
+            printf "%-13s %7d    %.6f   (%.6f,%.6f)\n" (show h) c p l u
+        printf "\n"

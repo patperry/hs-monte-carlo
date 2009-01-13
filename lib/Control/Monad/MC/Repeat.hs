@@ -8,43 +8,25 @@
 --
 
 module Control.Monad.MC.Repeat (
-    -- * Averaging functions
+    -- * Repeating computations
+    repeatMC,
     replicateMC,
-    replicateMCWith,
-    
-    module Control.Monad.MC.Summary,
     ) where
 
 import Control.Monad
 import Control.Monad.MC.Base
-import Control.Monad.MC.Summary
-import Data.List( foldl' )
 
-
--- | Repeat a Monte Carlo generator the given number of times and return
--- the sample summary statistics.  Note that this only works with
--- @Double@s.
-replicateMC :: (MonadMC m)
-            => Int
-            -> m Double
-            -> m Summary
-replicateMC = replicateMCWith update summary
+-- | Produce a lazy infinite list of values from the given Monte Carlo
+-- generator.
+repeatMC :: (MonadMC m) => m a -> m [a]
+repeatMC = interleaveSequence . repeat
+{-# INLINE repeatMC #-}
+         
+-- | Produce a lazy list of the given length using the specified 
+-- generator.
+replicateMC :: (MonadMC m) => Int -> m a -> m [a]
+replicateMC n = interleaveSequence . replicate n
 {-# INLINE replicateMC #-}
-
--- | Generalized version of 'replicateMC'.  Run a Monte Carlo generator
--- the given number of times and accumulate the results.  The accumulator
--- is strictly evaluated.
-replicateMCWith :: (MonadMC m)
-                => (a -> b -> a) -- ^ accumulator
-                -> a             -- ^ initial value
-                -> Int           -- ^ number of repetitions
-                -> m b           -- ^ generator
-                -> m a
-replicateMCWith f a n mb = do
-    bs <- interleaveSequence $ replicate n mb
-    return $! foldl' f a bs
-{-# INLINE replicateMCWith #-}
-
 
 interleaveSequence :: (MonadMC m) => [m a] -> m [a]
 interleaveSequence []     = return []

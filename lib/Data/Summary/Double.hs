@@ -1,32 +1,40 @@
 -----------------------------------------------------------------------------
 -- |
--- Module     : Control.Monad.MC.Summary
+-- Module     : Data.Summary.Double
 -- Copyright  : Copyright (c) , Patrick Perry <patperry@stanford.edu>
 -- License    : BSD3
 -- Maintainer : Patrick Perry <patperry@stanford.edu>
 -- Stability  : experimental
 --
+-- Summary statistics for @Double@s.
+--
 
-module Control.Monad.MC.Summary (
-    -- * Summary statistics
-    -- ** The @Summary@ data type
+module Data.Summary.Double (
+    -- * The @Summary@ data type
     Summary,
     summary,
     update,
     
-    -- ** @Summary@ properties
+    -- * @Summary@ properties
     sampleSize,
-    sampleMean,
-    sampleVar,
-    sampleSD,
-    sampleSE,
-    sampleCI,
     sampleMin,
     sampleMax,
-    
+    sampleMean,
+    sampleSE,
+    sampleVar,
+    sampleSD,
+    sampleCI,
+
+    -- * Confidence intervals
+    module Data.Summary.Common,
+        
     ) where
 
-import GSL.Random.Dist( ugaussianPInv )
+import Data.List( foldl' )
+import Text.Printf
+
+import Data.Summary.Common
+
 
 -- | A type for storing summary statistics for a data set including
 -- sample size, min and max values, and first and second moments.
@@ -35,10 +43,25 @@ data Summary = S {-# UNPACK #-} !Int     -- sample size
                  {-# UNPACK #-} !Double  -- sum of squares
                  {-# UNPACK #-} !Double  -- sample min
                  {-# UNPACK #-} !Double  -- sample max
+
+instance Show Summary where
+    show s@(S n mu _ l h) = 
+        printf "\n    sample size: %d" n
+        ++ printf "\n            min: %g" l
+        ++ printf "\n            max: %g" h
+        ++ printf "\n           mean: %g" mu
+        ++ printf "\n             SE: %g" (sampleSE s)
+        ++ printf "\n         99%% CI: (%g, %g)" c1 c2
+        ++ "\n"
+      where (c1,c2) = sampleCI 0.99 s
+
+-- | Get a summary of a list of values.
+summary :: [Double] -> Summary
+summary = foldl' update empty
     
 -- | Get an empty summary.
-summary :: Summary
-summary = S 0 0 0 (1/0) (-1/0)
+empty :: Summary
+empty = S 0 0 0 (1/0) (-1/0)
 
 -- | Update the summary with a data point.  
 -- Running mean and variance computed as in Knuth, Vol 2, page 232, 
@@ -77,15 +100,7 @@ sampleSE s = sqrt (sampleVar s / fromIntegral (sampleSize s))
 -- | Get a Central Limit Theorem-based confidence interval for the mean
 -- with the specified coverage level.  The level must be in the range @(0,1)@.
 sampleCI :: Double -> Summary -> (Double,Double)
-sampleCI level s | not (level > 0 && level < 1) = 
-                       error "level must be between 0 and 1"
-                 | otherwise =
-    let alpha = (0.5 - level) + 0.5
-        z     = -(ugaussianPInv (0.5*alpha))
-        se    = sampleSE s
-        delta = z*se
-        xbar  = sampleMean s
-    in (xbar-delta, xbar+delta)
+sampleCI level s = interval level (sampleMean s) (sampleSE s)
 
 -- | Get the minimum of the sample.
 sampleMin :: Summary -> Double
