@@ -3,6 +3,7 @@ dist
 *.o
 examples/Pi
 examples/Poker
+examples/Queue
 examples/Sampling
 tests/test-mc
 
