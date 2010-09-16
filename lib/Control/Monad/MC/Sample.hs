@@ -1,9 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-#if defined(__GLASGOW_HASKELL__)
-#if __GLASGOW_HASKELL__ < 610
-{-# OPTIONS_GHC -XPatternSignatures #-}
-#endif
-#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Sample
@@ -34,10 +28,11 @@ import Control.Monad.ST
 import Control.Monad.MC.Base
 import Control.Monad.MC.Walker
 
-import Data.Array.Base
-import Data.Array.IArray
-import Data.Array.ST
-import Data.Array.Vector
+import Data.Vector.Unboxed( MVector, Unbox )
+import qualified Data.Vector as BV
+import qualified Data.Vector.Mutable as BMV
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic.Mutable as MV
 
 -- | @sample xs@ samples a value uniformly from the elements of @xs@.  The
 -- results are undefined if @length xs@ is zero.
@@ -67,34 +62,34 @@ sampleSubset k xs = let
 {-# INLINE sampleSubset #-}
 
 sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
-sampleHelp n (xs :: [a]) f = let
-    arr = listArray (0,n-1) xs :: Array Int a
-    in liftM (unsafeAt arr) f
+sampleHelp _n xs f = let
+    arr = BV.fromList xs
+    in liftM (BV.unsafeIndex arr) f
 
-sampleHelpUA :: (UA a, Monad m) => Int -> [a] -> m Int -> m a
-sampleHelpUA n xs f = let
-    arr = newU n (\marr -> zipWithM_ (writeMU marr) [0..n-1] xs)
-    in liftM (indexU arr) f
+sampleHelpU :: (Unbox a, Monad m) => Int -> [a] -> m Int -> m a
+sampleHelpU _n xs f = let
+    arr = V.fromList xs
+    in liftM (V.unsafeIndex arr) f
 
 {-# RULES "sampleHelp/Double" forall n xs f.
-              sampleHelp n (xs :: [Double]) f = sampleHelpUA n xs f #-}
+              sampleHelp n (xs :: [Double]) f = sampleHelpU n xs f #-}
 {-# RULES "sampleHelp/Int" forall n xs f.
-              sampleHelp n (xs :: [Int]) f = sampleHelpUA n xs f #-}
+              sampleHelp n (xs :: [Int]) f = sampleHelpU n xs f #-}
 
 sampleListHelp :: (Monad m) => Int -> [a] -> m [Int] -> m [a]
-sampleListHelp n (xs :: [a]) f = let
-    arr = listArray (0,n-1) xs :: Array Int a
-    in liftM (map $ unsafeAt arr) f
+sampleListHelp _n xs f = let
+    arr = BV.fromList xs
+    in liftM (map $ BV.unsafeIndex arr) f
 
-sampleListHelpUA :: (UA a, Monad m) => Int -> [a] -> m [Int] -> m [a]
-sampleListHelpUA n xs f = let
-    arr = newU n (\marr -> zipWithM_ (writeMU marr) [0..n-1] xs)
-    in liftM (map $ indexU arr) f
+sampleListHelpU :: (Unbox a, Monad m) => Int -> [a] -> m [Int] -> m [a]
+sampleListHelpU _n xs f = let
+    arr = V.fromList xs
+    in liftM (map $ V.unsafeIndex arr) f
 
 {-# RULES "sampleListHelp/Double" forall n xs f.
-              sampleListHelp n (xs :: [Double]) f = sampleListHelpUA n xs f #-}
+              sampleListHelp n (xs :: [Double]) f = sampleListHelpU n xs f #-}
 {-# RULES "sampleListHelp/Int" forall n xs f.
-              sampleListHelp n (xs :: [Int]) f = sampleListHelpUA n xs f #-}
+              sampleListHelp n (xs :: [Int]) f = sampleListHelpU n xs f #-}
 
 -- | @sampleInt n@ samples integers uniformly from @[ 0..n-1 ]@.  It is an
 -- error to call this function with a non-positive @n@.
@@ -123,8 +118,8 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
                     | otherwise = do
     us <- randomIndices k n
     return $ runST $ do
-        ints <- newMU n
-        sequence_ [ writeMU ints i i | i <- [0 .. n-1] ]
+        ints <- MV.new n :: ST s (MVector s Int)
+        sequence_ [ MV.unsafeWrite ints i i | i <- [0 .. n-1] ]
         sampleIntSubsetHelp ints us (n-1)
   where
     randomIndices k' n' | k' == 0   = return []
@@ -135,8 +130,8 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
         
     sampleIntSubsetHelp _    []     _  = return []
     sampleIntSubsetHelp ints (u:us) n' = unsafeInterleaveST $ do
-        i <- readMU ints u
-        writeMU ints u =<< readMU ints n'
+        i <- MV.unsafeRead ints u
+        MV.unsafeWrite ints u =<< MV.unsafeRead ints n'
         is <- sampleIntSubsetHelp ints us (n'-1)
         return (i:is)
 {-# INLINE sampleIntSubset #-}
@@ -145,43 +140,43 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
 -- the result.  All permutations of the elements of @xs@ are equally
 -- likely.
 shuffle :: (MonadMC m) => [a] -> m [a]
-shuffle (xs :: [a]) = let
+shuffle xs = let
     n = length xs
-    in shuffleInt n >>= \swaps -> (return . runST) $ do
-           marr <- newListArray (0,n-1) xs :: ST s (STArray s Int a)
+    in shuffleInt n >>= \swaps -> (return . BV.toList . BV.create) $ do
+           marr <- MV.new n :: ST s (BMV.MVector s a)
+           zipWithM_ (MV.unsafeWrite marr) [0 .. n-1] xs
            mapM_ (swap marr) swaps
-           getElems marr
+           return marr
   where
     swap marr (i,j) | i == j    = return ()
                     | otherwise = do
-        x <- unsafeRead marr i
-        y <- unsafeRead marr j
-        unsafeWrite marr i y
-        unsafeWrite marr j x
+        x <- MV.unsafeRead marr i
+        y <- MV.unsafeRead marr j
+        MV.unsafeWrite marr i y
+        MV.unsafeWrite marr j x
 {-# INLINE shuffle #-}
 
-shuffleUA :: (UA a, MonadMC m) => [a] -> m [a]
-shuffleUA (xs :: [a]) = let
+shuffleU :: (Unbox a, MonadMC m) => [a] -> m [a]
+shuffleU xs = let
     n = length xs
-    in shuffleInt n >>= \swaps -> (return . runST) $ do
-           marr <- newMU n
-           zipWithM_ (writeMU marr) [0 .. n-1] xs
+    in shuffleInt n >>= \swaps -> (return . V.toList . V.create) $ do
+           marr <- MV.new n
+           zipWithM_ (MV.unsafeWrite marr) [0 .. n-1] xs
            mapM_ (swap marr) swaps
-           arr <- unsafeFreezeAllMU marr
-           return $ fromU arr
+           return marr
   where
     swap marr (i,j) | i == j    = return ()
                     | otherwise = do
-        x <- readMU marr i
-        y <- readMU marr j
-        writeMU marr i y
-        writeMU marr j x
-{-# INLINE shuffleUA #-}        
+        x <- MV.unsafeRead marr i
+        y <- MV.unsafeRead marr j
+        MV.unsafeWrite marr i y
+        MV.unsafeWrite marr j x
+{-# INLINE shuffleU #-}        
 
 {-# RULES "shuffle/Double" forall xs.
-              shuffle (xs :: [Double]) = shuffleUA xs #-}
+              shuffle (xs :: [Double]) = shuffleU xs #-}
 {-# RULES "shuffle/Int" forall xs.
-              shuffle (xs :: [Int]) = shuffleUA xs #-}
+              shuffle (xs :: [Int]) = shuffleU xs #-}
 
 
 -- | @shuffleInt n@ generates a sequence of swaps equivalent to a

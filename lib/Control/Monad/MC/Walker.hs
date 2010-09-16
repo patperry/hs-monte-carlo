@@ -21,53 +21,55 @@ module Control.Monad.MC.Walker (
 
 import Control.Monad
 import Control.Monad.ST
-import Data.Array.Vector
+import Data.Vector.Unboxed( Vector, MVector )
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic.Mutable as MV
 
 -- | The table, which represents an equiprobable mixture of two-point
 -- distributions.  The @l@th entry of the table represents a mixture
 -- distribution with weight @q[l]@ on @l@ and weight @(1-q[l])@ on @j[l]@.
 -- The @l@th element of the table stores the pair @q[l] :*: j[l]@.
-newtype Table = T (UArr (Double :*: Int))
+newtype Table = T (Vector (Double, Int))
 
 -- | Get the @i@th mixture component.  That is, return @q[i]@ and @j[i]@,
 -- where the @i@th mixture component puts mass @q[i]@ on @i@ and mass
 -- @1 - q[i]@ on @j[i]@.
 component :: Table -> Int -> (Double,Int)
 component (T qjs) i = let
-    (q' :*: j) = indexU qjs i
+    (q', j) =  (V.!) qjs i
     q = q' - fromIntegral i
     in (q,j)
 
 -- | Compute the table for use in Walker's aliasing method.
 computeTable :: Int -> [Double] -> Table
-computeTable n ws = runST $ do
+computeTable n ws = T $ V.create $ do
     (qjs, sets) <- initTable n ws
     breakLarger qjs sets
     scaleTable qjs
-    liftM T $ unsafeFreezeAllMU qjs
+    return qjs
 
 -- | Given an alias table and a number in the range [0,1),
 -- get the corresponding sample in the table.
 indexTable :: Table -> Double -> Int
 indexTable (T qjs) u = let
-    n  = lengthU qjs
+    n  = V.length qjs
     nu = u * fromIntegral n
     l  = floor nu
-    (ql :*: jl) = indexU qjs l
+    (ql,jl) = (V.!) qjs l
     in if nu < ql then l else jl
 
 -- | Get the size of the table
 tableSize :: Table -> Int
-tableSize (T qjs) = lengthU qjs
+tableSize (T qjs) = V.length qjs
 
 -- | An intermediate result for use in computing a Table.
-type STTable s = MUArr (Double :*: Int) s
+type STTable s = MVector s (Double, Int)
 
 -- | A partition of indices into the sets /Greater/ and /Smaller/.  The
 -- indices of the /Smaller/ set are stored in positions @0, ..., numSmall - 1@,
 -- and the indices of the /Greater/ set are stored in positions
 -- @numSmall, ..., n-1@, where @n@ is the size of the underlying array.
-data STPartition s = P !(MUArr Int s)
+data STPartition s = P !(MVector s Int)
                        !Int
 
 -- | Given a list of weights, @ws@, compute corresponding probabilities, @ps@,
@@ -77,15 +79,15 @@ data STPartition s = P !(MUArr Int s)
 initTable :: Int -> [Double] -> ST s (STTable s, STPartition s)
 initTable n ws = do
     when (n < 0) $ fail "negative table size"
-    sets <- newMU n :: ST s (MUArr Int s)
-    qjs  <- newMU n :: ST s (MUArr (Double :*: Int) s)
+    sets <- MV.new n :: ST s (MVector s Int)
+    qjs  <- MV.new n :: ST s (MVector s (Double, Int))
 
     -- Store the weights in the table and compute their total.
     total <-
         foldM (\current (i,w) -> do
                   if w >= 0
                       then do
-                          writeMU qjs i (w :*: i)
+                          MV.write qjs i (w,i)
                           return $! current + w
                       else
                           fail $ "negative probability" )
@@ -99,15 +101,15 @@ initTable n ws = do
     let scale = fromIntegral n / total
     nsmall <- liftM fst $
         foldM (\(smaller,greater) i -> do
-               p <- liftM fstS $ readMU qjs i
+               p <- liftM fst $ MV.read qjs i
                let q = scale*p
-               writeMU qjs i (q :*: i)
+               MV.write qjs i (q,i)
                if q < 1
                    then do
-                       writeMU sets smaller i
+                       MV.write sets smaller i
                        return (smaller+1,greater)
                    else do
-                       writeMU sets greater i
+                       MV.write sets greater i
                        return (smaller,greater-1) )
               (0,n-1)
               [0 .. n-1]
@@ -121,24 +123,24 @@ initTable n ws = do
 breakLarger :: STTable s -> STPartition s -> ST s ()
 breakLarger qjs (P sets nsmall) | nsmall == 0 = return ()
                                 | otherwise   = let
-    n = lengthMU qjs
+    n = MV.length qjs
     breakLargerHelp nsmall' i | nsmall' == n = return ()
                               | i == n       = return ()
                               | otherwise    = do
         -- while Greater is not empty
         -- choose k from Greater, l from Smaller
-        k  <- readMU sets $ nsmall'
-        l  <- readMU sets $ i
-        qk <- liftM fstS $ readMU qjs k
-        ql <- liftM fstS $ readMU qjs l
+        k  <- MV.read sets $ nsmall'
+        l  <- MV.read sets $ i
+        qk <- liftM fst $ MV.read qjs k
+        ql <- liftM fst $ MV.read qjs l
 
         -- set jl := k, finalize (ql,jl)
         let jl = k
-        writeMU qjs l (ql :*: jl)
+        MV.write qjs l (ql,jl)
 
         -- set qk := qk - (1-ql)
         let qk' = qk - (1-ql)
-        writeMU qjs k (qk' :*: k)
+        MV.write qjs k (qk',k)
 
         -- if qk' < 1, move k from Greater to Smaller
         let nsmall'' = if qk' < 1 then nsmall'+1 else nsmall'
@@ -152,8 +154,8 @@ breakLarger qjs (P sets nsmall) | nsmall == 0 = return ()
 -- from the table.
 scaleTable :: STTable s -> ST s ()
 scaleTable qjs = let
-    n = lengthMU qjs in
+    n = MV.length qjs in
     forM_ [ 0..(n-1) ] $ \l -> do
-        (ql :*: jl) <- readMU qjs l
-        writeMU qjs l ((ql + fromIntegral l) :*: jl)
+        (ql, jl) <- MV.read qjs l
+        MV.write qjs l ((ql + fromIntegral l), jl)
 

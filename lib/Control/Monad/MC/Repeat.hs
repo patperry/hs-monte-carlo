@@ -13,7 +13,6 @@ module Control.Monad.MC.Repeat (
     replicateMC,
     ) where
 
-import Control.Monad
 import Control.Monad.MC.Base
 
 -- | Produce a lazy infinite list of values from the given Monte Carlo

@@ -3,8 +3,8 @@ version:        0.3
 license:        BSD3
 license-file:   LICENSE
 author:         Patrick Perry
-maintainer:     Patrick Perry <patperry@stanford.edu>
-homepage:       http://github.com/patperry/monte-carlo
+maintainer:     Patrick Perry <patperry@gmail.com>
+homepage:       http://github.com/patperry/hs-monte-carlo
 category:       Math
 synopsis:       A monad and transformer for Monte Carlo calculations.
 description:    A monad and transformer for Monte Carlo calculations.  The 
@@ -20,7 +20,7 @@ extra-source-files: examples/Pi.hs, examples/Sampling.hs examples/Poker.hs
                     tests/Main.hs tests/Makefile
 
 library
-    build-depends:  array, base, mtl, gsl-random >=0.3.1, uvector
+    build-depends:  base >= 4 && < 5, mtl, gsl-random >=0.3.1, vector >= 0.6
     
     exposed-modules: 
             Control.Monad.MC
@@ -39,13 +39,10 @@ library
             Data.Summary.Common
           
     extensions:
-            CPP,
             FlexibleContexts, 
             FlexibleInstances, 
             MultiParamTypeClasses,
-            ScopedTypeVariables,
             TypeFamilies,
-            TypeOperators,
             UndecidableInstances
 
     hs-source-dirs: lib
