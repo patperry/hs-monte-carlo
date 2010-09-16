@@ -35,7 +35,7 @@ newtype Table = T (Vector (Double, Int))
 -- @1 - q[i]@ on @j[i]@.
 component :: Table -> Int -> (Double,Int)
 component (T qjs) i = let
-    (q', j) =  (V.!) qjs i
+    (q', j) =  V.unsafeIndex qjs i
     q = q' - fromIntegral i
     in (q,j)
 
@@ -54,7 +54,7 @@ indexTable (T qjs) u = let
     n  = V.length qjs
     nu = u * fromIntegral n
     l  = floor nu
-    (ql,jl) = (V.!) qjs l
+    (ql,jl) = V.unsafeIndex qjs l
     in if nu < ql then l else jl
 
 -- | Get the size of the table
@@ -86,7 +86,7 @@ initTable n ws = do
         foldM (\current (i,w) -> do
                   if w >= 0
                       then do
-                          MV.write qjs i (w,i)
+                          MV.unsafeWrite qjs i (w,i)
                           return $! current + w
                       else
                           fail $ "negative probability" )
@@ -100,15 +100,15 @@ initTable n ws = do
     let scale = fromIntegral n / total
     nsmall <- liftM fst $
         foldM (\(smaller,greater) i -> do
-               p <- liftM fst $ MV.read qjs i
+               p <- liftM fst $ MV.unsafeRead qjs i
                let q = scale*p
-               MV.write qjs i (q,i)
+               MV.unsafeWrite qjs i (q,i)
                if q < 1
                    then do
-                       MV.write sets smaller i
+                       MV.unsafeWrite sets smaller i
                        return (smaller+1,greater)
                    else do
-                       MV.write sets greater i
+                       MV.unsafeWrite sets greater i
                        return (smaller,greater-1) )
               (0,n-1)
               [0 .. n-1]
@@ -128,18 +128,18 @@ breakLarger qjs (P sets nsmall) | nsmall == 0 = return ()
                               | otherwise    = do
         -- while Greater is not empty
         -- choose k from Greater, l from Smaller
-        k  <- MV.read sets $ nsmall'
-        l  <- MV.read sets $ i
-        qk <- liftM fst $ MV.read qjs k
-        ql <- liftM fst $ MV.read qjs l
+        k  <- MV.unsafeRead sets $ nsmall'
+        l  <- MV.unsafeRead sets $ i
+        qk <- liftM fst $ MV.unsafeRead qjs k
+        ql <- liftM fst $ MV.unsafeRead qjs l
 
         -- set jl := k, finalize (ql,jl)
         let jl = k
-        MV.write qjs l (ql,jl)
+        MV.unsafeWrite qjs l (ql,jl)
 
         -- set qk := qk - (1-ql)
         let qk' = qk - (1-ql)
-        MV.write qjs k (qk',k)
+        MV.unsafeWrite qjs k (qk',k)
 
         -- if qk' < 1, move k from Greater to Smaller
         let nsmall'' = if qk' < 1 then nsmall'+1 else nsmall'
@@ -155,6 +155,6 @@ scaleTable :: STTable s -> ST s ()
 scaleTable qjs = let
     n = MV.length qjs in
     forM_ [ 0..(n-1) ] $ \l -> do
-        (ql, jl) <- MV.read qjs l
-        MV.write qjs l ((ql + fromIntegral l), jl)
+        (ql, jl) <- MV.unsafeRead qjs l
+        MV.unsafeWrite qjs l ((ql + fromIntegral l), jl)
 
