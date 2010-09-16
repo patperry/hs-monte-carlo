@@ -12,15 +12,18 @@ module Control.Monad.MC.Sample (
     sample,
     sampleWithWeights,
     sampleSubset,
+    sampleSubset',
 
     -- * Sampling @Int@s
     sampleInt,
     sampleIntWithWeights,
     sampleIntSubset,
+    sampleIntSubset',
     
     -- * Shuffling
     shuffle,
     shuffleInt,
+    shuffleInt',
     ) where
 
 import Control.Monad
@@ -61,15 +64,24 @@ sampleSubset k xs = let
     in sampleListHelp n xs $ sampleIntSubset k n
 {-# INLINE sampleSubset #-}
 
+-- | Strict version of 'sampleSubset'.
+sampleSubset' :: (MonadMC m) => Int -> [a] -> m [a]
+sampleSubset' k xs = do
+    s <- sampleSubset k xs
+    length s `seq` return s
+{-# INLINE sampleSubset' #-}
+
 sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
 sampleHelp _n xs f = let
     arr = BV.fromList xs
     in liftM (BV.unsafeIndex arr) f
+{-# INLINE sampleHelp #-}
 
 sampleHelpU :: (Unbox a, Monad m) => Int -> [a] -> m Int -> m a
 sampleHelpU _n xs f = let
     arr = V.fromList xs
     in liftM (V.unsafeIndex arr) f
+{-# INLINE sampleHelpU #-}
 
 {-# RULES "sampleHelp/Double" forall n xs f.
               sampleHelp n (xs :: [Double]) f = sampleHelpU n xs f #-}
@@ -80,6 +92,7 @@ sampleListHelp :: (Monad m) => Int -> [a] -> m [Int] -> m [a]
 sampleListHelp _n xs f = let
     arr = BV.fromList xs
     in liftM (map $ BV.unsafeIndex arr) f
+{-# INLINE sampleListHelp #-}
 
 sampleListHelpU :: (Unbox a, Monad m) => Int -> [a] -> m [Int] -> m [a]
 sampleListHelpU _n xs f = let
@@ -136,6 +149,13 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
         return (i:is)
 {-# INLINE sampleIntSubset #-}
 
+-- | Strict version of 'sampleIntSubset'.
+sampleIntSubset' :: (MonadMC m) => Int -> Int -> m [Int]
+sampleIntSubset' k n = do
+    s <- sampleIntSubset k n
+    length s `seq` return s
+{-# INLINE sampleIntSubset' #-}
+
 -- | @shuffle xs@ randomly permutes the list @xs@ and returns
 -- the result.  All permutations of the elements of @xs@ are equally
 -- likely.
@@ -191,3 +211,10 @@ shuffleInt n =
             return $ (i-1,j):ijs in
     shuffleIntHelp n
 {-# INLINE shuffleInt #-}
+
+-- | Strict version of 'shuffleInt'.
+shuffleInt' :: (MonadMC m) => Int -> m [(Int,Int)]
+shuffleInt' n = do
+    ss <- shuffleInt n
+    length ss `seq` return ss
+{-# INLINE shuffleInt' #-}
