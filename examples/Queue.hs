@@ -181,7 +181,7 @@ summarize = summary . map totalTime
 main = 
     let customerSeed    = 0
         restaurantSeed  = 100
-        numTransactions = 1000000
+        numTransactions = 100000
         results         = summarize $ take numTransactions $ 
                               simulation  customerSeed restaurantSeed
     in do
