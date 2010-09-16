@@ -13,27 +13,13 @@
 module Control.Monad.MC.Class (
     -- * The Monte Carlo monad type class
     HasRNG(..),
-    MonadMC,
-    
-    -- * Getting and setting the generator
-    getRNG,
-    setRNG,
+    MonadMC(..),
     
     -- * Random distributions
-    uniform,
-    uniformInt,
-    normal,
-    exponential,
-    levy,
-    levySkew,
     bernoulli,
-    poisson,
     
     module Control.Monad.MC.Sample,
     module Control.Monad.MC.Repeat,
-    
-    -- * Interleaving computations
-    unsafeInterleaveMC
     ) where
 
 import Control.Monad.MC.Base

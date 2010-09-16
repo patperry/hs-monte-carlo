@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.GSLBase

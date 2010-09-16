@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeOperators #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Walker
