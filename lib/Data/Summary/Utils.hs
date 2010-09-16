@@ -1,13 +1,15 @@
 -----------------------------------------------------------------------------
 -- |
--- Module     : Data.Summary.Common
+-- Module     : Data.Summary.Utils
 -- Copyright  : Copyright (c) , Patrick Perry <patperry@stanford.edu>
 -- License    : BSD3
 -- Maintainer : Patrick Perry <patperry@stanford.edu>
 -- Stability  : experimental
 --
+-- Utilities for data summaries.
+--
 
-module Data.Summary.Common (
+module Data.Summary.Utils (
     interval,
     inInterval,
     ) where

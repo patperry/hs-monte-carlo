@@ -6,7 +6,8 @@ of them fall in the unit circle.
 \begin{code}
 import Control.Monad( liftM, liftM2 )
 import Control.Monad.MC( MC, uniform, replicateMC, evalMC, mt19937 )
-import Data.Summary.Bool( summary, sampleMean, sampleSE, interval )
+import Data.Summary.Bool( summary, sampleMean, sampleSE )
+import Data.Summary.Utils( interval )
 import Text.Printf
 \end{code}
 

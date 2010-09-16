@@ -7,6 +7,7 @@ import Text.Printf( printf )
 
 import Control.Monad.MC
 import Data.Summary
+import Data.Summary.Utils( inInterval )
 
 -- | Sample from a binomial distribution with the given parameters.
 binomial :: (MonadMC m) => Int -> Double -> m Int

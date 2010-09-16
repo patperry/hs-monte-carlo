@@ -23,18 +23,18 @@ library
     exposed-modules: 
             Control.Monad.MC
             Control.Monad.MC.Class
+            Control.Monad.MC.GSL
             Data.Summary
             Data.Summary.Bool
             Data.Summary.Double
+            Data.Summary.Utils
             
     other-modules:
             Control.Monad.MC.Base
-            Control.Monad.MC.GSL
             Control.Monad.MC.GSLBase
             Control.Monad.MC.Repeat
             Control.Monad.MC.Sample
             Control.Monad.MC.Walker
-            Data.Summary.Common
           
     extensions:
             FlexibleInstances,

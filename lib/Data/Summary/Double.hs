@@ -25,15 +25,12 @@ module Data.Summary.Double (
     sampleSD,
     sampleCI,
 
-    -- * Confidence intervals
-    module Data.Summary.Common,
-        
     ) where
 
 import Data.List( foldl' )
 import Text.Printf
 
-import Data.Summary.Common
+import Data.Summary.Utils
 
 
 -- | A type for storing summary statistics for a data set including
