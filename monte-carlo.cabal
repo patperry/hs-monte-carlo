@@ -20,8 +20,6 @@ extra-source-files: examples/Pi.hs, examples/Sampling.hs examples/Poker.hs
                     tests/Main.hs tests/Makefile
 
 library
-    build-depends:  base >= 4 && < 5, mtl, gsl-random >=0.3.1, vector >= 0.6
-    
     exposed-modules: 
             Control.Monad.MC
             Control.Monad.MC.Class
@@ -39,11 +37,15 @@ library
             Data.Summary.Common
           
     extensions:
-            FlexibleContexts, 
-            FlexibleInstances, 
+            FlexibleInstances,
             MultiParamTypeClasses,
             TypeFamilies,
             UndecidableInstances
+
+    build-depends:  base >= 4 && < 5,
+                    gsl-random >= 0.3.1,
+                    mtl >= 1.1 && < 1.2,
+                    vector >= 0.6 && < 0.7
 
     hs-source-dirs: lib
     ghc-options:    -Wall
