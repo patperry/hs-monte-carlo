@@ -1,9 +1,9 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Data.Summary.Bool
--- Copyright  : Copyright (c) , Patrick Perry <patperry@stanford.edu>
+-- Copyright  : Copyright (c) 2010, Patrick Perry <patperry@gmail.com>
 -- License    : BSD3
--- Maintainer : Patrick Perry <patperry@stanford.edu>
+-- Maintainer : Patrick Perry <patperry@gmail.com>
 -- Stability  : experimental
 --
 -- Summary statistics for @Bool@s.

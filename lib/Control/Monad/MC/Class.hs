@@ -1,9 +1,9 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Class
--- Copyright  : Copyright (c) , Patrick Perry <patperry@stanford.edu>
+-- Copyright  : Copyright (c) 2010, Patrick Perry <patperry@gmail.com>
 -- License    : BSD3
--- Maintainer : Patrick Perry <patperry@stanford.edu>
+-- Maintainer : Patrick Perry <patperry@gmail.com>
 -- Stability  : experimental
 --
 -- The abstract MonadMC interface and utility functions for Monte Carlo

@@ -1,6 +1,10 @@
 
 Changes in 0.3:
 
+* Add strict versions of sampleSubset, sampleIntSubset, and shuffleInt.
+
+* Port to vector-0.6.0.
+
 * Add Exponential and Levy alpha-Stable distributions.
 
 * Add Summary.Bool for indicators.
