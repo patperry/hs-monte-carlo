@@ -1,9 +1,10 @@
 all:
-	ghc -O -i. -i../lib Main.hs --make -o test-mc
+	ghc -O -package ieee754 -i. -i../lib Main.hs --make -o test-mc
 	./test-mc
 
 hpc:
-	ghc -fforce-recomp -i. -i../lib -fhpc --make Main.hs -o test-mc
+	ghc -fforce-recomp -package ieee754 \
+	    -i. -i../lib -fhpc --make Main.hs -o test-mc
 	rm -f test-mc.tix
 	./test-mc
 	hpc markup test-mc
