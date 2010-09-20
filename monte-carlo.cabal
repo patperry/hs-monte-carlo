@@ -1,5 +1,5 @@
 name:           monte-carlo
-version:        0.3
+version:        0.3.1
 license:        BSD3
 license-file:   LICENSE
 author:         Patrick Perry
@@ -46,7 +46,7 @@ library
     build-depends:  base >= 4 && < 5,
                     gsl-random >= 0.3.1,
                     mtl >= 1.1 && < 1.2,
-                    vector >= 0.6 && < 0.7
+                    vector >= 0.6 && < 0.8
 
     hs-source-dirs: lib
     ghc-options:    -Wall
