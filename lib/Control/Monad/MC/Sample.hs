@@ -177,15 +177,15 @@ sampleIntSubset' n k = do
 {-# INLINE sampleIntSubset' #-}
 
 sampleIntSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
-sampleIntSubsetWithWeights ws n k = do
-    us <- replicateMC k $ uniform 0 1
-    return $ runST $ do
-        let w_sum = foldl' (+) 0 $ take n ws
-        ints <- MV.new n :: ST s (MVector s (Double,Int))
-        sequence_ [ MV.unsafeWrite ints i (w/w_sum, j)
-                  | (i,(w,j)) <- zip [ 0.. ] $ reverse $ sort (zip ws [ 0..n-1 ])
-                  ]
-        go ints n 1 us
+sampleIntSubsetWithWeights ws n k = let
+    w_sum0 = foldl' (+) 0 $ take n ws
+    wjs = [ (w / w_sum0, j) | (w,j) <- reverse $ sort $ zip ws [ 0..n-1 ] ]
+    in do
+        us <- replicateMC k $ uniform 0 1
+        return $ runST $ do
+            ints <- MV.new n :: ST s (MVector s (Double,Int))
+            sequence_ [ MV.unsafeWrite ints i wj | (i,wj) <- zip [ 0.. ] wjs ]
+            go ints n 1 us
   where    
     go ints n' w_sum us | null us   = return []
                         | otherwise = let
