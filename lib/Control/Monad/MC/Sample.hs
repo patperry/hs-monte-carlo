@@ -13,12 +13,16 @@ module Control.Monad.MC.Sample (
     sampleWithWeights,
     sampleSubset,
     sampleSubset',
+    sampleSubsetWithWeights,
+    sampleSubsetWithWeights',    
 
     -- * Sampling @Int@s
     sampleInt,
     sampleIntWithWeights,
     sampleIntSubset,
     sampleIntSubset',
+    sampleIntSubsetWithWeights,
+    sampleIntSubsetWithWeights',    
     
     -- * Shuffling
     shuffle,
@@ -29,7 +33,9 @@ module Control.Monad.MC.Sample (
 import Control.Monad
 import Control.Monad.ST
 import Control.Monad.MC.Base
+import Control.Monad.MC.Repeat
 import Control.Monad.MC.Walker
+import Data.List( foldl', sort )
 
 import Data.Vector.Unboxed( MVector, Unbox )
 import qualified Data.Vector as BV
@@ -70,6 +76,20 @@ sampleSubset' k xs = do
     s <- sampleSubset k xs
     length s `seq` return s
 {-# INLINE sampleSubset' #-}
+
+sampleSubsetWithWeights :: (MonadMC m) => Int -> [(Double,a)] -> m [a]
+sampleSubsetWithWeights k wxs = let
+    (ws,xs) = unzip wxs
+    n = length ws
+    in sampleListHelp n xs $ sampleIntSubsetWithWeights ws k n
+{-# INLINE sampleSubsetWithWeights #-}
+
+-- | Strict version of 'sampleSubsetWithWeights'.
+sampleSubsetWithWeights' :: (MonadMC m) => Int -> [(Double,a)] -> m [a]
+sampleSubsetWithWeights' k wxs = do
+    s <- sampleSubsetWithWeights k wxs
+    length s `seq` return s
+{-# INLINE sampleSubsetWithWeights' #-}
 
 sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
 sampleHelp _n xs f = let
@@ -155,6 +175,54 @@ sampleIntSubset' k n = do
     s <- sampleIntSubset k n
     length s `seq` return s
 {-# INLINE sampleIntSubset' #-}
+
+sampleIntSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
+sampleIntSubsetWithWeights ws k n = do
+    us <- replicateMC k $ uniform 0 1
+    return $ runST $ do
+        let w_sum = foldl' (+) 0 $ take n ws
+        ints <- MV.new n :: ST s (MVector s (Double,Int))
+        sequence_ [ MV.unsafeWrite ints i (w/w_sum, j)
+                  | (i,(w,j)) <- zip [ 0..n-1 ] $ reverse $ sort (zip ws [ 0..n-1 ])
+                  ]
+        go ints n 1 us
+  where    
+    go ints n' w_sum us | null us   = return []
+                        | otherwise = let
+        target = head us * w_sum
+        in unsafeInterleaveST $ do
+            (i,(w,j)) <- findTarget ints n' target 0 0
+            shiftDown ints (i+1) (n'-1)
+            let w_sum' = w_sum - w
+                n''    = n' - 1
+                us'    = tail us
+            js <- go ints n'' w_sum' us'
+            return $ j:js
+    
+    findTarget ints n' target i acc
+        | i == n' - 1 = do
+            wj <- MV.unsafeRead ints i
+            return (i,wj)
+        | otherwise = do
+            (w,j) <- MV.unsafeRead ints i
+            let acc' = acc + w
+            if target <= acc'
+                then return (i,(w,j))
+                else findTarget ints n' target (i+1) acc'
+    
+    shiftDown ints from to =
+        forM_ [ from..to ] $ \i -> do
+            wj <- MV.unsafeRead ints i
+            MV.unsafeWrite ints (i-1) wj
+
+{-# INLINE sampleIntSubsetWithWeights #-}
+
+-- | Strict version of 'sampleIntSubsetWithWeights'.
+sampleIntSubsetWithWeights' :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
+sampleIntSubsetWithWeights' ws k n = do
+    s <- sampleIntSubsetWithWeights ws k n
+    length s `seq` return s
+{-# INLINE sampleIntSubsetWithWeights' #-}
 
 -- | @shuffle xs@ randomly permutes the list @xs@ and returns
 -- the result.  All permutations of the elements of @xs@ are equally
