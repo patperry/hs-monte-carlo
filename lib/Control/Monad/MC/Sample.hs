@@ -77,6 +77,8 @@ sampleSubset' xs k = do
     length s `seq` return s
 {-# INLINE sampleSubset' #-}
 
+-- | Sample a subset of the elements with the given weights.  Return
+-- the elements of the subset lazily in the order they were sampled.
 sampleSubsetWithWeights :: (MonadMC m) => [(Double,a)] -> Int -> m [a]
 sampleSubsetWithWeights wxs k = let
     (ws,xs) = unzip wxs
@@ -176,6 +178,10 @@ sampleIntSubset' n k = do
     length s `seq` return s
 {-# INLINE sampleIntSubset' #-}
 
+-- | @sampleIntSubsetWithWeights ws n k@ samplea size @k@ subset of
+-- @{ 0, ..., n-1 }@ with the given weights by sampling elements without
+-- replacement.  It returns the elements of the subset lazily in the order
+-- they were sampled.
 sampleIntSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
 sampleIntSubsetWithWeights ws n k = let
     w_sum0 = foldl' (+) 0 $ take n ws
