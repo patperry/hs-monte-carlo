@@ -60,34 +60,34 @@ sampleWithWeights wxs = let
     in sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
--- | @sampleSubset k xs@ samples a subset of size @k@ from @xs@ by 
+-- | @sampleSubset xs k@ samples a subset of size @k@ from @xs@ by 
 -- sampling without replacement.  The return value is a list of length @k@ 
 -- with the elements in the subset in the order that they were sampled.  Note
 -- also that the elements are lazily generated.
-sampleSubset :: (MonadMC m) => Int -> [a] -> m [a]
-sampleSubset k xs = let
+sampleSubset :: (MonadMC m) => [a] -> Int -> m [a]
+sampleSubset xs k = let
     n = length xs
-    in sampleListHelp n xs $ sampleIntSubset k n
+    in sampleListHelp n xs $ sampleIntSubset n k
 {-# INLINE sampleSubset #-}
 
 -- | Strict version of 'sampleSubset'.
-sampleSubset' :: (MonadMC m) => Int -> [a] -> m [a]
-sampleSubset' k xs = do
-    s <- sampleSubset k xs
+sampleSubset' :: (MonadMC m) => [a] -> Int -> m [a]
+sampleSubset' xs k = do
+    s <- sampleSubset xs k
     length s `seq` return s
 {-# INLINE sampleSubset' #-}
 
-sampleSubsetWithWeights :: (MonadMC m) => Int -> [(Double,a)] -> m [a]
-sampleSubsetWithWeights k wxs = let
+sampleSubsetWithWeights :: (MonadMC m) => [(Double,a)] -> Int -> m [a]
+sampleSubsetWithWeights wxs k = let
     (ws,xs) = unzip wxs
     n = length ws
-    in sampleListHelp n xs $ sampleIntSubsetWithWeights ws k n
+    in sampleListHelp n xs $ sampleIntSubsetWithWeights ws n k
 {-# INLINE sampleSubsetWithWeights #-}
 
 -- | Strict version of 'sampleSubsetWithWeights'.
-sampleSubsetWithWeights' :: (MonadMC m) => Int -> [(Double,a)] -> m [a]
-sampleSubsetWithWeights' k wxs = do
-    s <- sampleSubsetWithWeights k wxs
+sampleSubsetWithWeights' :: (MonadMC m) => [(Double,a)] -> Int -> m [a]
+sampleSubsetWithWeights' wxs k = do
+    s <- sampleSubsetWithWeights wxs k
     length s `seq` return s
 {-# INLINE sampleSubsetWithWeights' #-}
 
@@ -141,24 +141,24 @@ sampleIntWithWeights ws n =
     in liftM (indexTable qjs) (uniform 0 1)
 {-# INLINE sampleIntWithWeights #-}
 
--- | @sampleIntSubset k n@ samples a subset of size @k@ by sampling without
+-- | @sampleIntSubset n k@ samples a subset of size @k@ by sampling without
 -- replacement from the integers @{ 0, ..., n-1 }@.  The return value is a 
 -- list of length @k@ with the elements in the subset in the order that they
 -- were sampled.  Note also that the elements are lazily generated.
 sampleIntSubset :: (MonadMC m) => Int -> Int -> m [Int]
-sampleIntSubset k n | k < 0     = fail "negative subset size"
+sampleIntSubset n k | k < 0     = fail "negative subset size"
                     | k > n     = fail "subset size is too big"
                     | otherwise = do
-    us <- randomIndices k n
+    us <- randomIndices n k
     return $ runST $ do
         ints <- MV.new n :: ST s (MVector s Int)
         sequence_ [ MV.unsafeWrite ints i i | i <- [0 .. n-1] ]
         sampleIntSubsetHelp ints us (n-1)
   where
-    randomIndices k' n' | k' == 0   = return []
+    randomIndices n' k' | k' == 0   = return []
                         | otherwise = unsafeInterleaveMC $ do
         u  <- uniformInt n'
-        us <- randomIndices (k'-1) (n'-1)
+        us <- randomIndices (n'-1) (k'-1)
         return (u:us)
         
     sampleIntSubsetHelp _    []     _  = return []
@@ -171,19 +171,19 @@ sampleIntSubset k n | k < 0     = fail "negative subset size"
 
 -- | Strict version of 'sampleIntSubset'.
 sampleIntSubset' :: (MonadMC m) => Int -> Int -> m [Int]
-sampleIntSubset' k n = do
-    s <- sampleIntSubset k n
+sampleIntSubset' n k = do
+    s <- sampleIntSubset n k
     length s `seq` return s
 {-# INLINE sampleIntSubset' #-}
 
 sampleIntSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
-sampleIntSubsetWithWeights ws k n = do
+sampleIntSubsetWithWeights ws n k = do
     us <- replicateMC k $ uniform 0 1
     return $ runST $ do
         let w_sum = foldl' (+) 0 $ take n ws
         ints <- MV.new n :: ST s (MVector s (Double,Int))
         sequence_ [ MV.unsafeWrite ints i (w/w_sum, j)
-                  | (i,(w,j)) <- zip [ 0..n-1 ] $ reverse $ sort (zip ws [ 0..n-1 ])
+                  | (i,(w,j)) <- zip [ 0.. ] $ reverse $ sort (zip ws [ 0..n-1 ])
                   ]
         go ints n 1 us
   where    
@@ -219,8 +219,8 @@ sampleIntSubsetWithWeights ws k n = do
 
 -- | Strict version of 'sampleIntSubsetWithWeights'.
 sampleIntSubsetWithWeights' :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
-sampleIntSubsetWithWeights' ws k n = do
-    s <- sampleIntSubsetWithWeights ws k n
+sampleIntSubsetWithWeights' ws n k = do
+    s <- sampleIntSubsetWithWeights ws n k
     length s `seq` return s
 {-# INLINE sampleIntSubsetWithWeights' #-}
 

@@ -61,7 +61,7 @@ hand cs =
     
 -- | Deal a five-card hand by choosing a random subset of the deck.
 deal :: (MonadMC m) => m [Card]
-deal = sampleSubset 5 deck
+deal = sampleSubset deck 5
 
 -- | A type for storing the frequencies of the various hands.
 type HandCounts = Map Hand Int
