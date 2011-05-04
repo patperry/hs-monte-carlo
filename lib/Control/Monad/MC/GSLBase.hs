@@ -45,6 +45,14 @@ module Control.Monad.MC.GSLBase (
     levy,
     levySkew,
     poisson,
+    cauchy,
+    beta,
+    logistic,
+    pareto,
+    weibull,
+    gamma,
+    multinomial,
+    dirichlet,
     ) where
 
 import Control.Applicative      ( Applicative(..), (<$>) )
@@ -57,6 +65,8 @@ import Control.Monad.Writer     ( MonadWriter(..) )
 import Control.Monad.Trans      ( MonadTrans(..), MonadIO(..) )
 import Data.Word
 import System.IO.Unsafe         ( unsafePerformIO, unsafeInterleaveIO )
+
+import qualified Data.Vector.Storable as VS
 
 import qualified GSL.Random.Gen as GSL
 import GSL.Random.Dist
@@ -310,6 +320,31 @@ levy = liftRan2 getLevy
 
 levySkew :: Double -> Double -> Double -> MC Double
 levySkew = liftRan3 getLevySkew
+
+cauchy :: Double -> MC Double
+cauchy = liftRan1 getCauchy
+
+beta :: Double -> Double -> MC Double
+beta = liftRan2 getBeta
+
+logistic :: Double -> MC Double
+logistic = liftRan1 getLogistic
+
+pareto :: Double -> Double -> MC Double
+pareto = liftRan2 getPareto
+
+weibull :: Double -> Double -> MC Double
+weibull = liftRan2 getWeibull
+
+gamma :: Double -> Double -> MC Double
+gamma = liftRan2 getGamma
+
+multinomial :: Int -> VS.Vector Double -> MC (VS.Vector Int)
+multinomial = liftRan2 getMultinomial
+
+dirichlet :: VS.Vector Double -> MC (VS.Vector Double)
+dirichlet = liftRan1 getDirichlet
+
 
 
 liftRan0 :: (GSL.RNG -> IO a) -> MC a

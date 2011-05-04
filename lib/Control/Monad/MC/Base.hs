@@ -14,6 +14,8 @@ module Control.Monad.MC.Base
 import Control.Monad
 import qualified Control.Monad.MC.GSLBase as GSL
 
+import qualified Data.Vector.Storable as VS
+
 class HasRNG m where
     -- | The random number generator type for the monad.
     type RNG m
@@ -52,6 +54,38 @@ class (Monad m, HasRNG m) => MonadMC m where
     -- | @poisson mu@ generates a Poisson random variable with mean @mu@.
     poisson :: Double -> m Int
 
+    -- | @cauchy a@ generates a Cauchy random variable with scale
+    -- parameter @a@.
+    cauchy :: Double -> m Double
+
+    -- | @beta a b@ generates a beta random variable with
+    -- parameters @a@ and @b@.
+    beta :: Double -> Double -> m Double
+
+    -- | @logistic a@ generates a logistic random variable with
+    -- parameter @a@.
+    logistic :: Double -> m Double
+
+    -- | @pareto a b@ generates a Pareto random variable with
+    -- exponent @a@ and scale @b@.
+    pareto :: Double -> Double -> m Double
+
+    -- | @weibull a b@ generates a Weibull random variable with
+    -- scale @a@ and exponent @b@.
+    weibull :: Double -> Double -> m Double
+
+    -- | @gamma a b@ generates a gamma random variable with
+    -- parameters @a@ and @b@.
+    gamma :: Double -> Double -> m Double
+
+    -- | @multinomial n ps@ generates a multinomial random
+    -- variable with parameters @ps@ formed by @n@ trials.
+    multinomial :: Int -> VS.Vector Double -> m (VS.Vector Int)
+
+    -- | @dirichlet alphas@ generates a Dirichlet random variable
+    -- with parameters @alphas@.
+    dirichlet :: VS.Vector Double -> m (VS.Vector Double)
+
     -- | Get the baton from the Monte Carlo monad without performing any
     -- computations.  Useful but dangerous.
     unsafeInterleaveMC :: m a -> m a
@@ -86,6 +120,22 @@ instance MonadMC GSL.MC where
     {-# INLINE levySkew #-}
     poisson = GSL.poisson
     {-# INLINE poisson #-}
+    cauchy = GSL.cauchy
+    {-# INLINE cauchy #-}
+    beta = GSL.beta
+    {-# INLINE beta #-}
+    logistic = GSL.logistic
+    {-# INLINE logistic #-}
+    pareto = GSL.pareto
+    {-# INLINE pareto #-}
+    weibull = GSL.weibull
+    {-# INLINE weibull #-}
+    gamma = GSL.gamma
+    {-# INLINE gamma #-}
+    multinomial = GSL.multinomial
+    {-# INLINE multinomial #-}
+    dirichlet = GSL.dirichlet
+    {-# INLINE dirichlet #-}
     unsafeInterleaveMC = GSL.unsafeInterleaveMC
     {-# INLINE unsafeInterleaveMC #-}
 
@@ -107,9 +157,25 @@ instance (Monad m) => MonadMC (GSL.MCT m) where
     {-# INLINE exponential #-}
     levy c alpha = GSL.liftMCT $ GSL.levy c alpha
     {-# INLINE levy #-}
-    levySkew c alpha beta = GSL.liftMCT $ GSL.levySkew c alpha beta
+    levySkew c alpha beta_ = GSL.liftMCT $ GSL.levySkew c alpha beta_
     {-# INLINE levySkew #-}
     poisson mu = GSL.liftMCT $ GSL.poisson mu
     {-# INLINE poisson #-}
+    cauchy a = GSL.liftMCT $ GSL.cauchy a
+    {-# INLINE cauchy #-}
+    beta a b = GSL.liftMCT $ GSL.beta a b
+    {-# INLINE beta #-}
+    logistic a = GSL.liftMCT $ GSL.logistic a
+    {-# INLINE logistic #-}
+    pareto a b = GSL.liftMCT $ GSL.pareto a b
+    {-# INLINE pareto #-}
+    weibull a b = GSL.liftMCT $ GSL.weibull a b
+    {-# INLINE weibull #-}
+    gamma a b = GSL.liftMCT $ GSL.gamma a b
+    {-# INLINE gamma #-}
+    multinomial n ps = GSL.liftMCT $ GSL.multinomial n ps
+    {-# INLINE multinomial #-}
+    dirichlet alphas = GSL.liftMCT $ GSL.dirichlet alphas
+    {-# INLINE dirichlet #-}
     unsafeInterleaveMC = GSL.unsafeInterleaveMCT
     {-# INLINE unsafeInterleaveMC #-}
