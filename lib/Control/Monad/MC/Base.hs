@@ -21,17 +21,17 @@ class HasRNG m where
 class (Monad m, HasRNG m) => MonadMC m where
     -- | Get the current random number generator.
     getRNG :: m (RNG m)
-    
+
     -- | Set the current random number generator.
     setRNG :: RNG m -> m ()
-    
+
     -- | @uniform a b@ generates a value uniformly distributed in @[a,b)@.
     uniform :: Double -> Double -> m Double
-    
+
     -- | @uniformInt n@ generates an integer uniformly in the range @[0,n-1]@.
     -- It is an error to call this function with a non-positive value.
     uniformInt :: Int -> m Int
-    
+
     -- | @normal mu sigma@ generates a Normal random variable with mean
     -- @mu@ and standard deviation @sigma@.
     normal :: Double -> Double -> m Double
@@ -43,15 +43,15 @@ class (Monad m, HasRNG m) => MonadMC m where
     -- exponent @alpha@.  The algorithm only works for @0 < alpha <= 2@.
     levy :: Double -> Double -> m Double
 
-    -- | @levySkew c alpha beta @ gets a skew Levy alpha-stable variate 
+    -- | @levySkew c alpha beta @ gets a skew Levy alpha-stable variate
     -- with scale @c@, exponent @alpha@, and skewness @beta@.  The skew
     -- parameter must lie in the range @[-1,1]@.  The algorithm only works
     -- for @0 < alpha <= 2@.
     levySkew :: Double -> Double -> Double -> m Double
-    
+
     -- | @poisson mu@ generates a Poisson random variable with mean @mu@.
     poisson :: Double -> m Int
-    
+
     -- | Get the baton from the Monte Carlo monad without performing any
     -- computations.  Useful but dangerous.
     unsafeInterleaveMC :: m a -> m a
@@ -104,7 +104,7 @@ instance (Monad m) => MonadMC (GSL.MCT m) where
     normal mu sigma = GSL.liftMCT $ GSL.normal mu sigma
     {-# INLINE normal #-}
     exponential mu = GSL.liftMCT $ GSL.exponential mu
-    {-# INLINE exponential #-}    
+    {-# INLINE exponential #-}
     levy c alpha = GSL.liftMCT $ GSL.levy c alpha
     {-# INLINE levy #-}
     levySkew c alpha beta = GSL.liftMCT $ GSL.levySkew c alpha beta

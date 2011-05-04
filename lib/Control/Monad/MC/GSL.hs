@@ -15,7 +15,7 @@ module Control.Monad.MC.GSL (
     runMC,
     evalMC,
     execMC,
-    
+
     -- * The Monte Carlo monad transformer
     MCT,
     runMCT,

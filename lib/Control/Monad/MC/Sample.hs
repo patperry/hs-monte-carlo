@@ -14,7 +14,7 @@ module Control.Monad.MC.Sample (
     sampleSubset,
     sampleSubset',
     sampleSubsetWithWeights,
-    sampleSubsetWithWeights',    
+    sampleSubsetWithWeights',
 
     -- * Sampling @Int@s
     sampleInt,
@@ -22,8 +22,8 @@ module Control.Monad.MC.Sample (
     sampleIntSubset,
     sampleIntSubset',
     sampleIntSubsetWithWeights,
-    sampleIntSubsetWithWeights',    
-    
+    sampleIntSubsetWithWeights',
+
     -- * Shuffling
     shuffle,
     shuffleInt,
@@ -60,8 +60,8 @@ sampleWithWeights wxs = let
     in sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
--- | @sampleSubset xs k@ samples a subset of size @k@ from @xs@ by 
--- sampling without replacement.  The return value is a list of length @k@ 
+-- | @sampleSubset xs k@ samples a subset of size @k@ from @xs@ by
+-- sampling without replacement.  The return value is a list of length @k@
 -- with the elements in the subset in the order that they were sampled.  Note
 -- also that the elements are lazily generated.
 sampleSubset :: (MonadMC m) => [a] -> Int -> m [a]
@@ -144,7 +144,7 @@ sampleIntWithWeights ws n =
 {-# INLINE sampleIntWithWeights #-}
 
 -- | @sampleIntSubset n k@ samples a subset of size @k@ by sampling without
--- replacement from the integers @{ 0, ..., n-1 }@.  The return value is a 
+-- replacement from the integers @{ 0, ..., n-1 }@.  The return value is a
 -- list of length @k@ with the elements in the subset in the order that they
 -- were sampled.  Note also that the elements are lazily generated.
 sampleIntSubset :: (MonadMC m) => Int -> Int -> m [Int]
@@ -162,7 +162,7 @@ sampleIntSubset n k | k < 0     = fail "negative subset size"
         u  <- uniformInt n'
         us <- randomIndices (n'-1) (k'-1)
         return (u:us)
-        
+
     sampleIntSubsetHelp _    []     _  = return []
     sampleIntSubsetHelp ints (u:us) n' = unsafeInterleaveST $ do
         i <- MV.unsafeRead ints u
@@ -192,7 +192,7 @@ sampleIntSubsetWithWeights ws n k = let
             ints <- MV.new n :: ST s (MVector s (Double,Int))
             sequence_ [ MV.unsafeWrite ints i wj | (i,wj) <- zip [ 0.. ] wjs ]
             go ints n 1 us
-  where    
+  where
     go ints n' w_sum us | null us   = return []
                         | otherwise = let
         target = head us * w_sum
@@ -204,7 +204,7 @@ sampleIntSubsetWithWeights ws n k = let
                 us'    = tail us
             js <- go ints n'' w_sum' us'
             return $ j:js
-    
+
     findTarget ints n' target i acc
         | i == n' - 1 = do
             wj <- MV.unsafeRead ints i
@@ -215,7 +215,7 @@ sampleIntSubsetWithWeights ws n k = let
             if target <= acc'
                 then return (i,(w,j))
                 else findTarget ints n' target (i+1) acc'
-    
+
     shiftDown ints from to =
         forM_ [ from..to ] $ \i -> do
             wj <- MV.unsafeRead ints i
@@ -265,7 +265,7 @@ shuffleU xs = let
         y <- MV.unsafeRead marr j
         MV.unsafeWrite marr i y
         MV.unsafeWrite marr j x
-{-# INLINE shuffleU #-}        
+{-# INLINE shuffleU #-}
 
 {-# RULES "shuffle/Double" forall xs.
               shuffle (xs :: [Double]) = shuffleU xs #-}
@@ -274,7 +274,7 @@ shuffleU xs = let
 
 
 -- | @shuffleInt n@ generates a sequence of swaps equivalent to a
--- uniformly-chosen random permutatation of the integers @{0, ..., n-1}@.  
+-- uniformly-chosen random permutatation of the integers @{0, ..., n-1}@.
 -- For an input of @n@, there are @n-1@ swaps, which are lazily generated.
 shuffleInt :: (MonadMC m) => Int -> m [(Int,Int)]
 shuffleInt n =
