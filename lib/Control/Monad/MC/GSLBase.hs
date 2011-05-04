@@ -47,7 +47,8 @@ module Control.Monad.MC.GSLBase (
     poisson,
     ) where
 
-import Control.Monad            ( liftM, MonadPlus(..) )
+import Control.Applicative      ( Applicative(..) )
+import Control.Monad            ( ap, liftM, MonadPlus(..) )
 import Control.Monad.Cont       ( MonadCont(..) )
 import Control.Monad.Error      ( MonadError(..) )
 import Control.Monad.Reader     ( MonadReader(..) )
@@ -102,6 +103,10 @@ instance Monad MC where
 
     fail s = MC $ \_ -> fail s
     {-# INLINE fail #-}
+
+instance Applicative MC where
+    pure  = return
+    (<*>) = ap
 
 -- | A parameterizable Monte Carlo monad for encapsulating an inner
 -- monad.
@@ -159,6 +164,10 @@ instance (Monad m) => Monad (MCT m) where
 
     fail str = MCT $ \_ -> fail str
     {-# INLINE fail #-}
+
+instance (Monad m) => Applicative (MCT m) where
+    pure  = return
+    (<*>) = ap
 
 instance (MonadPlus m) => MonadPlus (MCT m) where
     mzero = MCT $ \_ -> mzero
