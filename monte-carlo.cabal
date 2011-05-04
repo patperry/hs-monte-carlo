@@ -1,5 +1,5 @@
 name:           monte-carlo
-version:        0.4
+version:        0.4.1
 license:        BSD3
 license-file:   LICENSE
 author:         Patrick Perry
@@ -7,8 +7,8 @@ maintainer:     Patrick Perry <patperry@gmail.com>
 homepage:       http://github.com/patperry/hs-monte-carlo
 category:       Math
 synopsis:       A monad and transformer for Monte Carlo calculations.
-description:    A monad and transformer for Monte Carlo calculations.  The 
-                monads carry and provide access to a random number generator. 
+description:    A monad and transformer for Monte Carlo calculations.  The
+                monads carry and provide access to a random number generator.
                 Importantly, they only keep one copy of the generator state,
                 and so are much more efficient than MonadRandom.  Currently,
                 only the generator that comes with the GNU Scientific Library
@@ -21,7 +21,7 @@ extra-source-files: NEWS examples/Binomial.hs examples/Pi.lhs
                     tests/Makefile
 
 library
-    exposed-modules: 
+    exposed-modules:
             Control.Monad.MC
             Control.Monad.MC.Class
             Control.Monad.MC.GSL
@@ -29,24 +29,24 @@ library
             Data.Summary.Bool
             Data.Summary.Double
             Data.Summary.Utils
-            
+
     other-modules:
             Control.Monad.MC.Base
             Control.Monad.MC.GSLBase
             Control.Monad.MC.Repeat
             Control.Monad.MC.Sample
             Control.Monad.MC.Walker
-          
+
     extensions:
             FlexibleInstances,
             MultiParamTypeClasses,
             TypeFamilies,
             UndecidableInstances
 
-    build-depends:  base >= 4 && < 5,
-                    gsl-random >= 0.3.1,
-                    mtl >= 1.1 && < 1.2,
-                    vector >= 0.6 && < 0.8
+    build-depends:  base       >= 4     && < 5,
+                    gsl-random >= 0.4.2 && < 0.5,
+                    mtl        >= 1.1   && < 1.2,
+                    vector     >= 0.6   && < 0.8
 
     hs-source-dirs: lib
     ghc-options:    -Wall

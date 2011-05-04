@@ -14,7 +14,7 @@ module Data.Summary.Double (
     Summary,
     summary,
     update,
-    
+
     -- * @Summary@ properties
     sampleSize,
     sampleMin,
@@ -42,7 +42,7 @@ data Summary = S {-# UNPACK #-} !Int     -- sample size
                  {-# UNPACK #-} !Double  -- sample max
 
 instance Show Summary where
-    show s@(S n mu _ l h) = 
+    show s@(S n mu _ l h) =
         printf "    sample size: %d" n
         ++ printf "\n            min: %g" l
         ++ printf "\n            max: %g" h
@@ -54,13 +54,13 @@ instance Show Summary where
 -- | Get a summary of a list of values.
 summary :: [Double] -> Summary
 summary = foldl' update empty
-    
+
 -- | Get an empty summary.
 empty :: Summary
 empty = S 0 0 0 (1/0) (-1/0)
 
--- | Update the summary with a data point.  
--- Running mean and variance computed as in Knuth, Vol 2, page 232, 
+-- | Update the summary with a data point.
+-- Running mean and variance computed as in Knuth, Vol 2, page 232,
 -- 3rd edition, see http://www.johndcook.com/standard_deviation.html for
 -- a description.
 update :: Summary -> Double -> Summary

@@ -15,7 +15,7 @@ module Control.Monad.MC.GSLBase (
     evalMC,
     execMC,
     unsafeInterleaveMC,
-    
+
     -- * The Monte Carlo monad transformer
     MCT(..),
     runMCT,
@@ -45,9 +45,18 @@ module Control.Monad.MC.GSLBase (
     levy,
     levySkew,
     poisson,
+    cauchy,
+    beta,
+    logistic,
+    pareto,
+    weibull,
+    gamma,
+    multinomial,
+    dirichlet,
     ) where
 
-import Control.Monad            ( liftM, MonadPlus(..) )
+import Control.Applicative      ( Applicative(..), (<$>) )
+import Control.Monad            ( ap, liftM, MonadPlus(..) )
 import Control.Monad.Cont       ( MonadCont(..) )
 import Control.Monad.Error      ( MonadError(..) )
 import Control.Monad.Reader     ( MonadReader(..) )
@@ -56,7 +65,9 @@ import Control.Monad.Writer     ( MonadWriter(..) )
 import Control.Monad.Trans      ( MonadTrans(..), MonadIO(..) )
 import Data.Word
 import System.IO.Unsafe         ( unsafePerformIO, unsafeInterleaveIO )
-        
+
+import qualified Data.Vector.Storable as VS
+
 import qualified GSL.Random.Gen as GSL
 import GSL.Random.Dist
 
@@ -71,7 +82,7 @@ runMC (MC g) (RNG r) = unsafePerformIO $ do
     a  <- g r'
     return (a,RNG r')
 {-# NOINLINE runMC #-}
-    
+
 -- | Evaluate this Monte Carlo monad and throw away the final random number
 -- generator.  Very much like @fst@ composed with @runMC@.
 evalMC :: MC a -> RNG -> a
@@ -93,15 +104,19 @@ instance Functor MC where
 instance Monad MC where
     return a = MC $ \_ -> return a
     {-# INLINE return #-}
-    
+
     (MC m) >>= k =
         MC $ \r -> m r >>= \a ->
             let (MC m') = k a
             in m' r
     {-# INLINE (>>=) #-}
-    
+
     fail s = MC $ \_ -> fail s
     {-# INLINE fail #-}
+
+instance Applicative MC where
+    pure  = return
+    (<*>) = ap
 
 -- | A parameterizable Monte Carlo monad for encapsulating an inner
 -- monad.
@@ -111,7 +126,7 @@ newtype MCT m a = MCT (GSL.RNG -> IO (m a))
 runMCT :: (Monad m) => MCT m a -> RNG -> m (a,RNG)
 runMCT (MCT g) (RNG r) = unsafePerformIO $ do
     r' <- GSL.cloneRNG r
-    ma <- g r' 
+    ma <- g r'
     return (ma >>= \a -> return (a, RNG r'))
 {-# NOINLINE runMCT #-}
 
@@ -120,8 +135,8 @@ evalMCT :: (Monad m) => MCT m a -> RNG -> m a
 evalMCT g r = do
     ~(a,_) <- runMCT g r
     return a
-    
--- | Similar to 'execMC'.    
+
+-- | Similar to 'execMC'.
 execMCT :: (Monad m) => MCT m a -> RNG -> m RNG
 execMCT g r = do
     ~(_,r') <- runMCT g r
@@ -135,7 +150,7 @@ liftMCT (MC g) = MCT $ \r -> do
 {-# INLINE liftMCT #-}
 
 unsafeInterleaveMCT :: (Monad m) => MCT m a -> MCT m a
-unsafeInterleaveMCT (MCT g) = MCT $ \r -> 
+unsafeInterleaveMCT (MCT g) = MCT $ \r ->
     unsafeInterleaveIO (g r)
 {-# INLINE unsafeInterleaveMCT #-}
 
@@ -143,12 +158,12 @@ instance (Monad m) => Functor (MCT m) where
     fmap f (MCT g) = MCT $ \r -> do
         ma <- g r
         return (ma >>= return . f)
-    {-# INLINE fmap #-}   
+    {-# INLINE fmap #-}
 
 instance (Monad m) => Monad (MCT m) where
     return a = MCT $ \_ -> return (return a)
     {-# INLINE return #-}
-    
+
     (MCT g) >>= k =
         MCT $ \r -> do
             ma <- g r
@@ -156,15 +171,19 @@ instance (Monad m) => Monad (MCT m) where
                 let (MCT m') = k a
                 in unsafePerformIO $ m' r
     {-# NOINLINE (>>=) #-}
-            
+
     fail str = MCT $ \_ -> fail str
     {-# INLINE fail #-}
+
+instance (Monad m) => Applicative (MCT m) where
+    pure  = return
+    (<*>) = ap
 
 instance (MonadPlus m) => MonadPlus (MCT m) where
     mzero = MCT $ \_ -> mzero
     {-# INLINE mzero #-}
-        
-    (MCT m) `mplus` (MCT n) = 
+
+    (MCT m) `mplus` (MCT n) =
         MCT $ \r -> do
             r' <- GSL.cloneRNG r
             mr <- m r
@@ -185,11 +204,11 @@ instance (MonadCont m) => MonadCont (MCT m) where
 instance (MonadError e m) => MonadError e (MCT m) where
     throwError             = lift . throwError
     {-# INLINE throwError #-}
-    
+
     (MCT g) `catchError` h = MCT $ \r -> do
         ma <- g r
-        return $ ma `catchError` \e -> 
-            let (MCT m') = h e 
+        return $ ma `catchError` \e ->
+            let (MCT m') = h e
             in unsafePerformIO (m' r)
     {-# NOINLINE catchError #-}
 
@@ -200,28 +219,28 @@ instance (MonadIO m) => MonadIO (MCT m) where
 instance (MonadReader r m) => MonadReader r (MCT m) where
     ask              = lift ask
     {-# INLINE ask #-}
-    
+
     local f (MCT g) = MCT $ \r -> do
         ma <- g r
         return $ local f ma
     {-# INLINE local #-}
 
 instance (MonadState s m) => MonadState s (MCT m) where
-    get = lift get 
+    get = lift get
     {-# INLINE get #-}
-    
+
     put = lift . put
     {-# INLINE put #-}
 
 instance (MonadWriter w m) => MonadWriter w (MCT m) where
     tell           = lift . tell
     {-# INLINE tell #-}
-    
+
     listen (MCT g) = MCT $ \r -> do
         ma <- g r
         return (listen ma)
     {-# INLINE listen #-}
-    
+
     pass (MCT g) = MCT $ \r -> do
         maf <- g r
         return (pass maf)
@@ -278,26 +297,64 @@ mt19937WithState xs = unsafePerformIO $ do
 -------------------------- Random Number Distributions ----------------------
 
 uniform :: Double -> Double -> MC Double
-uniform 0 1 = MC $ \r -> GSL.getUniform r
-uniform a b = MC $ \r -> getFlat r a b
-    
+uniform 0 1 = liftRan0 GSL.getUniform
+uniform a b = liftRan2 getFlat a b
+
 uniformInt :: Int -> MC Int
-uniformInt n = MC $ \r -> GSL.getUniformInt r n
+uniformInt = liftRan1 GSL.getUniformInt
 
 normal :: Double -> Double -> MC Double
-normal 0  1     = MC $ \r -> getUGaussianRatioMethod r
-normal mu 1     = MC $ \r -> liftM (mu +) (getUGaussianRatioMethod r)
-normal 0  sigma = MC $ \r -> getGaussianRatioMethod r sigma
-normal mu sigma = MC $ \r -> liftM (mu +) (getGaussianRatioMethod r sigma)
+normal 0  1     =            liftRan0 getUGaussianRatioMethod
+normal mu 1     = (mu +) <$> liftRan0 getUGaussianRatioMethod
+normal 0  sigma =            liftRan1 getGaussianRatioMethod sigma
+normal mu sigma = (mu +) <$> liftRan1 getGaussianRatioMethod sigma
 
 exponential :: Double -> MC Double
-exponential mu = MC $ \r -> getExponential r mu
+exponential = liftRan1 getExponential
 
 poisson :: Double -> MC Int
-poisson mu = MC $ \r -> getPoisson r mu
+poisson = liftRan1 getPoisson
 
 levy :: Double -> Double -> MC Double
-levy c alpha = MC $ \r -> getLevy r c alpha
+levy = liftRan2 getLevy
 
 levySkew :: Double -> Double -> Double -> MC Double
-levySkew c alpha beta = MC $ \r -> getLevySkew r c alpha beta
+levySkew = liftRan3 getLevySkew
+
+cauchy :: Double -> MC Double
+cauchy = liftRan1 getCauchy
+
+beta :: Double -> Double -> MC Double
+beta = liftRan2 getBeta
+
+logistic :: Double -> MC Double
+logistic = liftRan1 getLogistic
+
+pareto :: Double -> Double -> MC Double
+pareto = liftRan2 getPareto
+
+weibull :: Double -> Double -> MC Double
+weibull = liftRan2 getWeibull
+
+gamma :: Double -> Double -> MC Double
+gamma = liftRan2 getGamma
+
+multinomial :: Int -> VS.Vector Double -> MC (VS.Vector Int)
+multinomial = liftRan2 getMultinomial
+
+dirichlet :: VS.Vector Double -> MC (VS.Vector Double)
+dirichlet = liftRan1 getDirichlet
+
+
+
+liftRan0 :: (GSL.RNG -> IO a) -> MC a
+liftRan0 = MC
+
+liftRan1 :: (GSL.RNG -> a -> IO b) -> a -> MC b
+liftRan1 f a = MC $ \r -> f r a
+
+liftRan2 :: (GSL.RNG -> a -> b -> IO c) -> a -> b -> MC c
+liftRan2 f a b = MC $ \r -> f r a b
+
+liftRan3 :: (GSL.RNG -> a -> b -> c -> IO d) -> a -> b -> c -> MC d
+liftRan3 f a b c = MC $ \r -> f r a b c
