@@ -47,7 +47,7 @@ module Control.Monad.MC.GSLBase (
     poisson,
     ) where
 
-import Control.Applicative      ( Applicative(..) )
+import Control.Applicative      ( Applicative(..), (<$>) )
 import Control.Monad            ( ap, liftM, MonadPlus(..) )
 import Control.Monad.Cont       ( MonadCont(..) )
 import Control.Monad.Error      ( MonadError(..) )
@@ -287,26 +287,39 @@ mt19937WithState xs = unsafePerformIO $ do
 -------------------------- Random Number Distributions ----------------------
 
 uniform :: Double -> Double -> MC Double
-uniform 0 1 = MC $ \r -> GSL.getUniform r
-uniform a b = MC $ \r -> getFlat r a b
+uniform 0 1 = liftRan0 GSL.getUniform
+uniform a b = liftRan2 getFlat a b
 
 uniformInt :: Int -> MC Int
-uniformInt n = MC $ \r -> GSL.getUniformInt r n
+uniformInt = liftRan1 GSL.getUniformInt
 
 normal :: Double -> Double -> MC Double
-normal 0  1     = MC $ \r -> getUGaussianRatioMethod r
-normal mu 1     = MC $ \r -> liftM (mu +) (getUGaussianRatioMethod r)
-normal 0  sigma = MC $ \r -> getGaussianRatioMethod r sigma
-normal mu sigma = MC $ \r -> liftM (mu +) (getGaussianRatioMethod r sigma)
+normal 0  1     =            liftRan0 getUGaussianRatioMethod
+normal mu 1     = (mu +) <$> liftRan0 getUGaussianRatioMethod
+normal 0  sigma =            liftRan1 getGaussianRatioMethod sigma
+normal mu sigma = (mu +) <$> liftRan1 getGaussianRatioMethod sigma
 
 exponential :: Double -> MC Double
-exponential mu = MC $ \r -> getExponential r mu
+exponential = liftRan1 getExponential
 
 poisson :: Double -> MC Int
-poisson mu = MC $ \r -> getPoisson r mu
+poisson = liftRan1 getPoisson
 
 levy :: Double -> Double -> MC Double
-levy c alpha = MC $ \r -> getLevy r c alpha
+levy = liftRan2 getLevy
 
 levySkew :: Double -> Double -> Double -> MC Double
-levySkew c alpha beta = MC $ \r -> getLevySkew r c alpha beta
+levySkew = liftRan3 getLevySkew
+
+
+liftRan0 :: (GSL.RNG -> IO a) -> MC a
+liftRan0 = MC
+
+liftRan1 :: (GSL.RNG -> a -> IO b) -> a -> MC b
+liftRan1 f a = MC $ \r -> f r a
+
+liftRan2 :: (GSL.RNG -> a -> b -> IO c) -> a -> b -> MC c
+liftRan2 f a b = MC $ \r -> f r a b
+
+liftRan3 :: (GSL.RNG -> a -> b -> c -> IO d) -> a -> b -> c -> MC d
+liftRan3 f a b c = MC $ \r -> f r a b c
