@@ -1,5 +1,7 @@
 Changes in 0.4.1:
 
+* Add applicative instances to GSL's MC and MCT.
+
 * Add many distributions: beta, logistic, Pareto, Weibull, gamma,
   multinomial and Dirichlet distributions are now available.
 
