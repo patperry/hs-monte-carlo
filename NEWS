@@ -1,9 +1,13 @@
-Changes in 0.4.1:
+Changes in 0.4:
 
-* Add applicative instances to GSL's MC and MCT.
+* Felipe Lessa added applicative instances to GSL's MC and MCT.
 
-* Add many distributions: beta, logistic, Pareto, Weibull, gamma,
+* Felipe Lessa added many distributions: beta, logistic, Pareto, Weibull, gamma,
   multinomial and Dirichlet distributions are now available.
+
+* Change argument order of subset sampling functions.
+
+* Add weighted sampling without replacement.
 
 
 Changes in 0.3.1:

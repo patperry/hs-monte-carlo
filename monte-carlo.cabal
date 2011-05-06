@@ -1,5 +1,5 @@
 name:           monte-carlo
-version:        0.4.1
+version:        0.4
 license:        BSD3
 license-file:   LICENSE
 author:         Patrick Perry
@@ -44,7 +44,7 @@ library
             UndecidableInstances
 
     build-depends:  base       >= 4     && < 5,
-                    gsl-random >= 0.4.2 && < 0.5,
+                    gsl-random >= 0.4.3 && < 0.5,
                     mtl        >= 1.1   && < 1.2,
                     vector     >= 0.6   && < 0.8
 
