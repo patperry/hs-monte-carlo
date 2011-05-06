@@ -23,7 +23,7 @@ interval :: Double -- ^ the confidence level
          -> Double -- ^ the sample mean
          -> Double -- ^ the sample standard error
          -> (Double,Double)
-interval level xbar se | not (level > 0 && level < 1) = 
+interval level xbar se | not (level > 0 && level < 1) =
                              error "level must be between 0 and 1"
                        | otherwise =
     let alpha = (0.5 - level) + 0.5

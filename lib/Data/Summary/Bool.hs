@@ -14,7 +14,7 @@ module Data.Summary.Bool (
     Summary,
     summary,
     update,
-    
+
     -- * @Summary@ properties
     sampleSize,
     count,
@@ -39,7 +39,7 @@ data Summary = S {-# UNPACK #-} !Int  -- sample size
                  {-# UNPACK #-} !Int  -- number of successes
 
 instance Show Summary where
-    show s@(S n c) = 
+    show s@(S n c) =
         printf "    sample size: %d" n
         ++ printf "\n      successes: %g" c
         ++ printf "\n     proportion: %g" (sampleMean s)
@@ -50,12 +50,12 @@ instance Show Summary where
 -- | Get a summary of a list of values.
 summary :: [Bool] -> Summary
 summary = foldl' update empty
-    
+
 -- | Get an empty summary.
 empty :: Summary
 empty = S 0 0
 
--- | Update the summary with a data point.  
+-- | Update the summary with a data point.
 update :: Summary -> Bool -> Summary
 update (S n c) i =
     let n' = n+1

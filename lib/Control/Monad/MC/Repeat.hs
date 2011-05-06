@@ -20,8 +20,8 @@ import Control.Monad.MC.Base
 repeatMC :: (MonadMC m) => m a -> m [a]
 repeatMC = interleaveSequence . repeat
 {-# INLINE repeatMC #-}
-         
--- | Produce a lazy list of the given length using the specified 
+
+-- | Produce a lazy list of the given length using the specified
 -- generator.
 replicateMC :: (MonadMC m) => Int -> m a -> m [a]
 replicateMC n = interleaveSequence . replicate n

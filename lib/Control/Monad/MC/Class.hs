@@ -14,10 +14,10 @@ module Control.Monad.MC.Class (
     -- * The Monte Carlo monad type class
     HasRNG(..),
     MonadMC(..),
-    
+
     -- * Random distributions
     bernoulli,
-    
+
     module Control.Monad.MC.Sample,
     module Control.Monad.MC.Repeat,
     ) where

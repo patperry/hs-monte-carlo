@@ -1,3 +1,11 @@
+Changes in 0.4.1:
+
+* Add applicative instances to GSL's MC and MCT.
+
+* Add many distributions: beta, logistic, Pareto, Weibull, gamma,
+  multinomial and Dirichlet distributions are now available.
+
+
 Changes in 0.3.1:
 
 * Change upper bound on vector dependency.
@@ -27,7 +35,7 @@ Changes in 0.3:
 
 * The pure RNG is now a newtype, so you can't use the functions from
   GLS.Random.Gen on it anymore.
-  
+
 * The internals of the monad have been cleaned up.  IO is used internally
   instead of `seq` calls and `unsafePerformIO` everywhere.  This results in
   a modest performance boost.
