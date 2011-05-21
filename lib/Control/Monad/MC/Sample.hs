@@ -236,12 +236,13 @@ sampleIntSubsetWithWeights' ws n k = do
 shuffle :: (MonadMC m) => [a] -> m [a]
 shuffle xs = let
     n = length xs
-    in shuffleInt n >>= \swaps -> (return . BV.toList . BV.create) $ do
-           marr <- MV.new n :: ST s (BMV.MVector s a)
+    in shuffleInt n >>= \swaps -> (return . BV.toList) $ BV.create $ do
+           marr <- MV.new n
            zipWithM_ (MV.unsafeWrite marr) [0 .. n-1] xs
            mapM_ (swap marr) swaps
            return marr
   where
+    swap :: BMV.MVector s a -> (Int,Int) -> ST s ()
     swap marr (i,j) | i == j    = return ()
                     | otherwise = do
         x <- MV.unsafeRead marr i
@@ -253,12 +254,13 @@ shuffle xs = let
 shuffleU :: (Unbox a, MonadMC m) => [a] -> m [a]
 shuffleU xs = let
     n = length xs
-    in shuffleInt n >>= \swaps -> (return . V.toList . V.create) $ do
+    in shuffleInt n >>= \swaps -> (return . V.toList) $ V.create $ do
            marr <- MV.new n
            zipWithM_ (MV.unsafeWrite marr) [0 .. n-1] xs
            mapM_ (swap marr) swaps
            return marr
   where
+    swap :: (Unbox a) => MVector s a -> (Int,Int) -> ST s ()
     swap marr (i,j) | i == j    = return ()
                     | otherwise = do
         x <- MV.unsafeRead marr i
