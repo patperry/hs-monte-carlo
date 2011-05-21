@@ -1,3 +1,8 @@
+Changes in 0.4.1:
+
+* Get project to compile with ghc7.
+
+
 Changes in 0.4:
 
 * Felipe Lessa added applicative instances to GSL's MC and MCT.
