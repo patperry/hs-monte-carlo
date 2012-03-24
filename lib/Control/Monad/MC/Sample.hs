@@ -164,6 +164,7 @@ sampleIntSubset n k | k < 0     = fail "negative subset size"
         us <- randomIndices (n'-1) (k'-1)
         return (u:us)
 
+    sampleIntSubsetHelp :: MVector m Int -> [Int] -> Int -> ST m [Int]
     sampleIntSubsetHelp _    []     _  = return []
     sampleIntSubsetHelp ints (u:us) n' = unsafeInterleaveST $ do
         i <- MV.unsafeRead ints u
@@ -194,6 +195,7 @@ sampleIntSubsetWithWeights ws n k = let
             sequence_ [ MV.unsafeWrite ints i wj | (i,wj) <- zip [ 0.. ] wjs ]
             go ints n 1 us
   where
+    go :: MVector m (Double, Int) -> Int -> Double -> [Double] -> ST m [Int]
     go ints n' w_sum us | null us   = return []
                         | otherwise = let
         target = head us * w_sum
@@ -206,6 +208,8 @@ sampleIntSubsetWithWeights ws n k = let
             js <- go ints n'' w_sum' us'
             return $ j:js
 
+    findTarget :: MVector m (Double, Int)
+                    -> Int -> Double -> Int -> Double -> ST m (Int, (Double, Int))
     findTarget ints n' target i acc
         | i == n' - 1 = do
             wj <- MV.unsafeRead ints i
@@ -217,6 +221,7 @@ sampleIntSubsetWithWeights ws n k = let
                 then return (i,(w,j))
                 else findTarget ints n' target (i+1) acc'
 
+    shiftDown :: MVector m (Double, Int) -> Int -> Int -> ST m ()
     shiftDown ints from to =
         forM_ [ from..to ] $ \i -> do
             wj <- MV.unsafeRead ints i
