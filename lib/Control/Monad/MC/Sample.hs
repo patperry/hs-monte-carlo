@@ -31,7 +31,8 @@ module Control.Monad.MC.Sample (
     ) where
 
 import Control.Monad
-import Control.Monad.ST
+import Control.Monad.ST hiding (unsafeInterleaveST)
+import Control.Monad.ST.Unsafe (unsafeInterleaveST)
 import Control.Monad.MC.Base
 import Control.Monad.MC.Repeat
 import Control.Monad.MC.Walker
