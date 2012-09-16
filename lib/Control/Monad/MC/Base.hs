@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, PolyKinds #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Base
