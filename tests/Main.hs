@@ -1,37 +1,34 @@
-
+{-# LANGUAGE RankNTypes #-}
 module Main where
 
-import Debug.Trace
 import Control.Monad
 import Data.AEq
-import Data.List
-import System.IO
-import System.Environment
-import System.Random
-import Text.Printf
 import Test.QuickCheck
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
 
 import Control.Monad.MC.Walker
 
-
+prop_table_probs :: Weights -> Bool
 prop_table_probs (Weights n ws) =
     let table = computeTable n ws
     in all (\i -> probOf table i ~== ps !! i) [0..n-1]
   where
     ps = probsFromWeights ws
 
+prop_table_index :: Weights -> Unif -> Bool
 prop_table_index (Weights n ws) (Unif u) =
     let table = computeTable n ws
         i     = indexTable table u
     in i >= 0 && i < n && (ws !! i > 0)
 
+tests_Walker :: Test
 tests_Walker = testGroup "Walker"
     [ testProperty "table probabilities" prop_table_probs
     , testProperty "table indexing"      prop_table_index
     ]
 
+probOf :: Table -> Int -> Double
 probOf table i =
     (((sum . map ((1-) . fst) . filter ((==i) . snd))
                        (map (component table) [0..n-1]))
@@ -41,6 +38,7 @@ probOf table i =
 
 ------------------------------- Utility functions ---------------------------
 
+probsFromWeights :: forall b. Fractional b => [b] -> [b]
 probsFromWeights ws = let
     w  = sum ws
     ps = map (/w) ws
