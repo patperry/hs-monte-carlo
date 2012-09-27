@@ -1,3 +1,7 @@
+Changes in 0.4.3:
+
+* New cabal test use: cabal configure --enable-tests --enable-library-coverage
+
 Changes in 0.4.2:
 
 * gliptak added compile fixes for ghc 7.4
