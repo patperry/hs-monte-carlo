@@ -24,6 +24,7 @@ module Data.Summary.Bool (
 
     ) where
 
+import Control.DeepSeq
 import Data.List( foldl' )
 import Data.Monoid
 import Text.Printf
@@ -51,6 +52,9 @@ instance Show Summary where
 instance Monoid Summary where
     mempty = empty
     mappend (S na ca) (S nb cb) = S (na + nb) (ca + cb)
+
+instance NFData Summary where
+    rnf s = s `seq` ()
 
 -- | Get a summary of a list of values.
 summary :: [Bool] -> Summary

@@ -74,3 +74,4 @@ test-suite monte-carlo-test
     , QuickCheck >= 2.4.0.1 && < 2.6
     , test-framework-quickcheck2 >= 0.2 && < 0.3
     , test-framework >= 0.4 && < 0.7
+    , deepseq >= 1.0 && < 2.0

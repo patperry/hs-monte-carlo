@@ -27,6 +27,7 @@ module Data.Summary.Double (
 
     ) where
 
+import Control.DeepSeq
 import Data.List( foldl' )
 import Data.Monoid
 import Text.Printf
@@ -74,6 +75,9 @@ instance Monoid Summary where
             l = min la lb
             h = max ha hb
          in S n m s l h
+
+instance NFData Summary where
+    rnf s = s `seq` ()
 
 -- | Get a summary of a list of values.
 summary :: [Double] -> Summary
