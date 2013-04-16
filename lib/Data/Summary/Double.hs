@@ -68,9 +68,8 @@ instance Monoid Summary where
             (na', nb') = (fromIntegral na, fromIntegral nb)
             n  = na + nb
             n' = fromIntegral n
-            m | na' >= 100 && nb' >= 100 &&
-                na' `approxEqual` nb' = (na'*ma + nb'*mb) / n'
-              | otherwise             = ma + delta*(nb' / n')
+            m  | n == 0    = 0
+               | otherwise = (na'*ma + nb'*mb) / n'
             s = sa + sb + delta*delta*(na'*nb'/n')
             l = min la lb
             h = max ha hb
