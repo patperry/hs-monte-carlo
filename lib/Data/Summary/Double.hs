@@ -62,10 +62,11 @@ instance Monoid Summary where
             (na', nb') = (fromIntegral na, fromIntegral nb)
             n  = na + nb
             n' = fromIntegral n
+            weightedDelta = delta*nb'/n'
             m  | n == 0    = 0
-               | otherwise = ma + delta*nb'/n'
+               | otherwise = ma + weightedDelta
             s  | n == 0    = 0
-               | otherwise = sa + sb + delta*delta*na'*nb'/n'
+               | otherwise = sa + sb + delta*na'*weightedDelta
             l  = min la lb
             h  = max ha hb
          in S n m s l h
