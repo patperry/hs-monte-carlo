@@ -53,26 +53,19 @@ instance Show Summary where
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
       where (c1,c2) = sampleCI 0.99 s
 
-approxEqual :: Double -> Double -> Bool
-approxEqual x y = let l = min x y
-                      h = max x y
-                   in l*(1+epsilon) >= h
-    where
-        epsilon = 1.0e-4
-
 instance Monoid Summary where
     mempty = empty
-    -- | See: http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
+    -- | See: Chan et al. "Updating Formulae and a Pairwise Algorithm for Computing Sample Variances."
+    --   ftp://reports.stanford.edu/pub/cstr/reports/cs/tr/79/773/CS-TR-79-773.pdf
     mappend (S na ma sa la ha) (S nb mb sb lb hb) =
-        let delta = nb' - na'
+        let delta = mb - ma
             (na', nb') = (fromIntegral na, fromIntegral nb)
             n  = na + nb
             n' = fromIntegral n
-            m  | n == 0    = 0
-               | otherwise = (na'*ma + nb'*mb) / n'
-            s = sa + sb + delta*delta*(na'*nb'/n')
-            l = min la lb
-            h = max ha hb
+            m  = ma + delta*nb'/n'
+            s  = sa + sb + delta*delta*na'*nb'/n'
+            l  = min la lb
+            h  = max ha hb
          in S n m s l h
 
 instance NFData Summary where
