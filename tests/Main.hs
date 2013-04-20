@@ -3,6 +3,8 @@ module Main where
 
 import Control.Monad
 import Data.AEq
+import Data.Monoid
+import Data.Summary
 import Test.QuickCheck
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
@@ -36,6 +38,16 @@ probOf table i =
   where
     n = tableSize table
 
+prop_monoid_update_equiv :: [Double] -> [Double] -> Bool
+prop_monoid_update_equiv xs ys =
+    approxEqualS (summary $ xs <> ys)
+                 (summary xs <> summary ys)
+
+tests_monoid :: Test
+tests_monoid = testGroup "Monoid Instance"
+    [ testProperty "Monoid/update equivalence" prop_monoid_update_equiv
+    ]
+
 ------------------------------- Utility functions ---------------------------
 
 probsFromWeights :: forall b. Fractional b => [b] -> [b]
@@ -43,6 +55,13 @@ probsFromWeights ws = let
     w  = sum ws
     ps = map (/w) ws
     in ps
+
+approxEqualS :: Summary -> Summary -> Bool
+approxEqualS a b =
+    sampleSize a == sampleSize b &&
+      all eq [ sampleMin, sampleMax, sampleMean, sampleVar ]
+    where
+        eq f = f a ~== f b
 
 ------------------------------- Test generators -----------------------------
 
@@ -81,4 +100,4 @@ instance Arbitrary Unif where
 
 
 main :: IO ()
-main = defaultMain [ tests_Walker ]
+main = defaultMain [ tests_Walker, tests_monoid ]
