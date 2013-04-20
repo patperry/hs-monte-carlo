@@ -24,7 +24,9 @@ module Data.Summary.Bool (
 
     ) where
 
+import Control.DeepSeq
 import Data.List( foldl' )
+import Data.Monoid
 import Text.Printf
 
 import Data.Summary.Utils
@@ -46,6 +48,13 @@ instance Show Summary where
         ++ printf "\n             SE: %g" (sampleSE s)
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
       where (c1,c2) = sampleCI 0.99 s
+
+instance Monoid Summary where
+    mempty = empty
+    mappend (S na ca) (S nb cb) = S (na + nb) (ca + cb)
+
+instance NFData Summary where
+    rnf s = s `seq` ()
 
 -- | Get a summary of a list of values.
 summary :: [Bool] -> Summary

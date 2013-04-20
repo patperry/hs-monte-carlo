@@ -27,7 +27,9 @@ module Data.Summary.Double (
 
     ) where
 
+import Control.DeepSeq
 import Data.List( foldl' )
+import Data.Monoid
 import Text.Printf
 
 import Data.Summary.Utils
@@ -50,6 +52,27 @@ instance Show Summary where
         ++ printf "\n             SE: %g" (sampleSE s)
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
       where (c1,c2) = sampleCI 0.99 s
+
+instance Monoid Summary where
+    mempty = empty
+    -- | See: Chan et al. "Updating Formulae and a Pairwise Algorithm for Computing Sample Variances."
+    --   ftp://reports.stanford.edu/pub/cstr/reports/cs/tr/79/773/CS-TR-79-773.pdf
+    mappend (S na ma sa la ha) (S nb mb sb lb hb) =
+        let delta = mb - ma
+            (na', nb') = (fromIntegral na, fromIntegral nb)
+            n  = na + nb
+            n' = fromIntegral n
+            weightedDelta = delta*nb'/n'
+            m  | n == 0    = 0
+               | otherwise = ma + weightedDelta
+            s  | n == 0    = 0
+               | otherwise = sa + sb + delta*na'*weightedDelta
+            l  = min la lb
+            h  = max ha hb
+         in S n m s l h
+
+instance NFData Summary where
+    rnf s = s `seq` ()
 
 -- | Get a summary of a list of values.
 summary :: [Double] -> Summary
