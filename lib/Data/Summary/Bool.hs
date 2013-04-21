@@ -51,7 +51,7 @@ instance Show Summary where
 
 instance Monoid Summary where
     mempty = empty
-    mappend (S na ca) (S nb cb) = S (na + nb) (ca + cb)
+    mappend = union
 
 instance NFData Summary where
     rnf s = s `seq` ()
@@ -63,6 +63,10 @@ summary = foldl' update empty
 -- | Get an empty summary.
 empty :: Summary
 empty = S 0 0
+
+-- | Take the union of two summaries.
+union :: Summary -> Summary -> Summary
+union (S na ca) (S nb cb) = S (na + nb) (ca + cb)
 
 -- | Update the summary with a data point.
 update :: Summary -> Bool -> Summary

@@ -55,21 +55,7 @@ instance Show Summary where
 
 instance Monoid Summary where
     mempty = empty
-    -- | See: Chan et al. "Updating Formulae and a Pairwise Algorithm for Computing Sample Variances."
-    --   ftp://reports.stanford.edu/pub/cstr/reports/cs/tr/79/773/CS-TR-79-773.pdf
-    mappend (S na ma sa la ha) (S nb mb sb lb hb) =
-        let delta = mb - ma
-            (na', nb') = (fromIntegral na, fromIntegral nb)
-            n  = na + nb
-            n' = fromIntegral n
-            weightedDelta = delta*nb'/n'
-            m  | n == 0    = 0
-               | otherwise = ma + weightedDelta
-            s  | n == 0    = 0
-               | otherwise = sa + sb + delta*na'*weightedDelta
-            l  = min la lb
-            h  = max ha hb
-         in S n m s l h
+    mappend = union
 
 instance NFData Summary where
     rnf s = s `seq` ()
@@ -95,6 +81,25 @@ update (S n m s l h) x =
         l'    = if x < l then x else l
         h'    = if x > h then x else h
     in S n' m' s' l' h'
+
+-- | Take the union of two summaries.
+-- Use the updating rules from Chan et al. "Updating Formulae and a Pairwise
+--   Algorithm for Computing Sample Variances," available at
+-- ftp://reports.stanford.edu/pub/cstr/reports/cs/tr/79/773/CS-TR-79-773.pdf
+union :: Summary -> Summary -> Summary
+union (S na ma sa la ha) (S nb mb sb lb hb) =
+    let delta = mb - ma
+        (na', nb') = (fromIntegral na, fromIntegral nb)
+        n  = na + nb
+        n' = fromIntegral n
+        weightedDelta = delta*nb'/n'
+        m  | n == 0    = 0
+           | otherwise = ma + weightedDelta
+        s  | n == 0    = 0
+           | otherwise = sa + sb + delta*na'*weightedDelta
+        l  = min la lb
+        h  = max ha hb
+    in S n m s l h
 
 -- | Get the sample size.
 sampleSize :: Summary -> Int
