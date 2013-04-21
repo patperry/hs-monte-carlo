@@ -43,8 +43,13 @@ prop_monoid_update_equiv xs ys =
     approxEqualS (summary $ xs <> ys)
                  (summary xs <> summary ys)
 
-prop_monoid_assoc :: [Double] -> [Double] -> Bool
-prop_monoid_assoc xs ys =
+prop_monoid_assoc :: [Double] -> [Double] -> [Double] -> Bool
+prop_monoid_assoc xs ys zs =
+    let (sxs, sys, szs) = (summary xs, summary ys, summary zs)
+     in ((sxs <> sys) <> szs) `approxEqualS` (sxs <> (sys <> szs))
+
+prop_monoid_commute :: [Double] -> [Double] -> Bool
+prop_monoid_commute xs ys =
     let (sxs, sys) = (summary xs, summary ys)
      in (sxs <> sys) `approxEqualS` (sys <> sxs)
 
@@ -52,6 +57,7 @@ tests_monoid :: Test
 tests_monoid = testGroup "Monoid Instance"
     [ testProperty "update equivalence" prop_monoid_update_equiv
     , testProperty "associativity" prop_monoid_assoc
+    , testProperty "commutativity" prop_monoid_commute
     ]
 
 ------------------------------- Utility functions ---------------------------
