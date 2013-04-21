@@ -2,6 +2,8 @@ Changes in 0.5:
 
 * Clark Gaebel added Monoid and NFData instances to Summary types
 
+* Clark Gaebel added liftMCT to the export list.
+
 
 Changes in 0.4.3:
 
