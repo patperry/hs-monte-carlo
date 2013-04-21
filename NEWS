@@ -1,3 +1,8 @@
+Changes in 0.5:
+
+* Clark Gaebel added Monoid and NFData instances to Summary types
+
+
 Changes in 0.4.3:
 
 * New cabal test use: cabal configure --enable-tests --enable-library-coverage
