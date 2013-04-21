@@ -53,8 +53,8 @@ instance Monoid Summary where
     mempty = empty
     mappend = union
 
-instance NFData Summary where
-    rnf s = s `seq` ()
+instance NFData Summary
+
 
 -- | Get a summary of a list of values.
 summary :: [Bool] -> Summary
