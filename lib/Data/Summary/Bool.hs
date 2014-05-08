@@ -43,7 +43,7 @@ data Summary = S {-# UNPACK #-} !Int  -- sample size
 instance Show Summary where
     show s@(S n c) =
         printf "    sample size: %d" n
-        ++ printf "\n      successes: %g" c
+        ++ printf "\n      successes: %d" c
         ++ printf "\n     proportion: %g" (sampleMean s)
         ++ printf "\n             SE: %g" (sampleSE s)
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
