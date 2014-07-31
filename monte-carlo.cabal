@@ -15,7 +15,7 @@ description:    A monad and transformer for Monte Carlo calculations.  The
                 (GSL) is supported.
 build-type:     Simple
 stability:      experimental
-cabal-version:  >= 1.6
+cabal-version:  >= 1.8
 extra-source-files: NEWS examples/Binomial.hs examples/Pi.lhs
                     examples/Poker.hs  examples/Queue.hs tests/Main.hs
                     tests/Makefile
