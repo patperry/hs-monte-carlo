@@ -2,7 +2,11 @@ Changes in 0.5:
 
 * Clark Gaebel added Monoid and NFData instances to Summary types
 
-* Clark Gaebel added liftMCT to the export list.
+* Clark Gaebel added liftMCT to the export list
+
+* Casper Holmgreen fixed bug in Data.Summary.Bool Show instance
+
+* Gábor Lipták added test target to cabal
 
 
 Changes in 0.4.3:
