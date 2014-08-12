@@ -1,6 +1,8 @@
 
 import Control.Monad
+import Control.Monad.Primitive( PrimMonad )
 import Control.Monad.MC
+import Control.Monad.ST( runST )
 import Data.List( foldl' )
 import Data.Summary
 import Text.Printf( printf )
@@ -12,23 +14,23 @@ data Item = Cheeseburger | Fries | Milkshake
 data Customer = Customer { orderOf :: [Item] }
 
 -- | The order size is a Poisson random variable with mean 2.
-orderSize :: MC Int
+orderSize :: (PrimMonad m) => MC m Int
 orderSize = liftM (1+) $ poisson 2
 
 -- | The items are sampled with the given weights.
-item :: MC Item
+item :: (PrimMonad m) => MC m Item
 item = sampleWithWeights [ (4, Cheeseburger), (2, Fries), (1, Milkshake) ]
 
 -- | Generate a random order.
-order :: MC [Item]
+order :: (PrimMonad m) => MC m [Item]
 order = do
     n <- orderSize
     replicateM n item
 
 -- | Generate a random customer.
-customer :: MC Customer
+customer :: (PrimMonad m) => MC m Customer
 customer = liftM Customer order
-    
+
 -- | A customer event.  The interarrival time is the time that elapeses
 -- between when the previous customer arrives and when the current customer 
 -- arrives.
@@ -38,21 +40,21 @@ data CustomerEvent = CustomerEvent { customerOf       :: !Customer
 
 -- | Generate a random customer event.  The interarrival time distribution
 -- is exponential with mean 1.
-customerEvent :: MC CustomerEvent
+customerEvent :: (PrimMonad m) => MC m CustomerEvent
 customerEvent = do
     c     <- customer
     delta <- exponential 10
     return $ CustomerEvent c delta
 
 -- | The time it takes to make an item.
-cook :: Item -> MC Double
+cook :: (PrimMonad m) => Item -> MC m Double
 cook Cheeseburger = exponential 3
 cook Fries        = exponential 1
 cook Milkshake    = exponential 2
 
 -- | The time it takes to cook all of the items in the list is equal
 -- to the maximum time.
-cookAll :: [Item] -> MC Double
+cookAll :: (PrimMonad m) => [Item] -> MC m Double
 cookAll items = do
     ts <- mapM cook items
     return $ foldl' max 0 ts
@@ -72,7 +74,7 @@ data Service = Service { serving     :: !Customer
 -- | Given a customer who has been wating in line, provide them with service.
 -- If the customer has been waiting for longer than 5 minutes, work twice as
 -- fast to cook the food.
-serveWaiting :: Waiting -> MC Service
+serveWaiting :: (PrimMonad m) => Waiting -> MC m Service
 serveWaiting (Waiting c w) = do
     t <- cookAll $ orderOf c
     let t' = if w > 5 then 0.5*t else t
@@ -95,11 +97,13 @@ addToWait :: Double -> [Waiting] -> [Waiting]
 addToWait delta = map (\(Waiting w t) -> Waiting w (t+delta))
 
 -- | Serve customers in the restaurant for the given amount of time.        
-serveForTime :: Double -> Restaurant -> MC ([Service], Restaurant)
-serveForTime = 
+serveForTime :: (PrimMonad m) => Double
+                              -> Restaurant
+                              -> MC m ([Service], Restaurant)
+serveForTime =
     let serveForTimeHelp ss t r = case r of
             -- When no one is being served and no one is in line, do nothing.
-            Restaurant Nothing  [] -> 
+            Restaurant Nothing  [] ->
                 return $ (ss, r)
 
             -- When no one is being served, take the first person in line
@@ -124,35 +128,35 @@ serveForTime =
                                        xs'    = addToWait t xs
                                        r'     = Restaurant y' xs' in
                                    return (ss,r')
-    in serveForTimeHelp []                                   
+    in serveForTimeHelp []
 
 -- | Given a new customer arrival event, produce a list of all of the new
 -- service events that happen before the customer gets there, and return
 -- the updated restaurant state at the time immediately after the customer
 -- arrives.
-processEvent :: CustomerEvent    
-             -> Restaurant       
-             -> MC ([Service], Restaurant)
+processEvent :: (PrimMonad m) => CustomerEvent
+                              -> Restaurant
+                              -> MC m ([Service], Restaurant)
 processEvent (CustomerEvent c t) r = do
     (ss,(Restaurant y xs)) <- serveForTime t r
     return $ (ss, (Restaurant y $ xs ++ [Waiting c 0]))
 
 -- | Finish serving all of the customers in line.
-finishServing :: Restaurant -> MC [Service]
+finishServing :: (PrimMonad m) => Restaurant -> MC m [Service]
 finishServing r = do
     (ss,_) <- serveForTime infinity r
     return ss
   where
     infinity = 1/0
-    
+
 -- | A restaurant takes a list of customer events and generates a random
 -- list of service events.  The reason for the call to "unsafeInterleaveMC"
 -- is that we want to make sure that we return a lazy list.   Without it,
 -- the function will return only after it has consumed all of the random
 -- numbers it needs.  This is problemeatic if the input list is large or
 -- or infinite.
-restaurant :: [CustomerEvent] -> MC [Service]
-restaurant = 
+restaurant :: (PrimMonad m) => [CustomerEvent] -> MC m [Service]
+restaurant =
     let restaurantHelp r []     = finishServing r
         restaurantHelp r (c:cs) = unsafeInterleaveMC $ do
             (ss,r') <- processEvent c r
@@ -163,26 +167,28 @@ restaurant =
 -- | An infinite stream of customerEvents.  This stream uses its own private 
 -- random number generator (mt19937 is the Mersenne-Twister algorithm).
 customerEvents :: Seed -> [CustomerEvent]
-customerEvents seed = repeatMC customerEvent `evalMC` mt19937 seed
+customerEvents seed = runST $
+    mt19937 seed >>= runMC (repeatMC customerEvent)
 
 -- | Given a seed for the customers and a seed for the restaurant, run the
 -- simulation.
 simulation :: Seed -> Seed -> [Service]
-simulation customerSeed restaurantSeed =
-    restaurant (customerEvents customerSeed) `evalMC` mt19937 restaurantSeed
+simulation customerSeed restaurantSeed = runST $ do
+    rng <- mt19937 restaurantSeed
+    runMC (restaurant (customerEvents customerSeed)) rng
 
 -- | Compute a summary of the total waitings time for each customer.
 summarize :: [Service] -> Summary
 summarize = summary . map totalTime
-  where 
+  where
     totalTime (Service _ w s) = w+s
-    
+
 -- | Run the program
-main = 
+main =
     let customerSeed    = 0
         restaurantSeed  = 100
         numTransactions = 100000
-        results         = summarize $ take numTransactions $ 
+        results         = summarize $ take numTransactions $
                               simulation  customerSeed restaurantSeed
     in do
         putStrLn ""

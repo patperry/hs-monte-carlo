@@ -13,24 +13,22 @@ module Control.Monad.MC.Repeat (
     replicateMC,
     ) where
 
-import Control.Monad.MC.Base
+import Control.Monad.Primitive( PrimMonad )
+import Control.Monad.MC.GSLBase
 
 -- | Produce a lazy infinite list of values from the given Monte Carlo
 -- generator.
-repeatMC :: (MonadMC m) => m a -> m [a]
+repeatMC :: (PrimMonad m) => MC m a -> MC m [a]
 repeatMC = interleaveSequence . repeat
-{-# INLINE repeatMC #-}
 
 -- | Produce a lazy list of the given length using the specified
 -- generator.
-replicateMC :: (MonadMC m) => Int -> m a -> m [a]
+replicateMC :: (PrimMonad m) => Int -> MC m a -> MC m [a]
 replicateMC n = interleaveSequence . replicate n
-{-# INLINE replicateMC #-}
 
-interleaveSequence :: (MonadMC m) => [m a] -> m [a]
+interleaveSequence :: (PrimMonad m) => [MC m a] -> MC m [a]
 interleaveSequence []     = return []
 interleaveSequence (m:ms) = unsafeInterleaveMC $ do
     a  <- m
     as <- interleaveSequence ms
     return (a:as)
-{-# INLINE interleaveSequence #-}

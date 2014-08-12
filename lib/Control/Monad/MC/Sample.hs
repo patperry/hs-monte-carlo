@@ -31,9 +31,10 @@ module Control.Monad.MC.Sample (
     ) where
 
 import Control.Monad
+import Control.Monad.Primitive( PrimMonad )
 import Control.Monad.ST hiding (unsafeInterleaveST)
 import Control.Monad.ST.Unsafe (unsafeInterleaveST)
-import Control.Monad.MC.Base
+import Control.Monad.MC.GSLBase
 import Control.Monad.MC.Repeat
 import Control.Monad.MC.Walker
 import Data.List( foldl', sort )
@@ -46,65 +47,57 @@ import qualified Data.Vector.Generic.Mutable as MV
 
 -- | @sample xs@ samples a value uniformly from the elements of @xs@.  The
 -- results are undefined if @length xs@ is zero.
-sample :: (MonadMC m) => [a] -> m a
+sample :: (PrimMonad m) => [a] -> MC m a
 sample xs = let
     n = length xs
     in sampleHelp n xs $ sampleInt n
-{-# INLINE sample #-}
 
 -- | @sampleWithWeights wxs@ samples a value from the list with the given
 -- weight.
-sampleWithWeights :: (MonadMC m) => [(Double, a)] -> m a
+sampleWithWeights :: (PrimMonad m) => [(Double, a)] -> MC m a
 sampleWithWeights wxs = let
     (ws,xs) = unzip wxs
     n       = length xs
     in sampleHelp n xs $ sampleIntWithWeights ws n
-{-# INLINE sampleWithWeights #-}
 
 -- | @sampleSubset xs k@ samples a subset of size @k@ from @xs@ by
 -- sampling without replacement.  The return value is a list of length @k@
 -- with the elements in the subset in the order that they were sampled.  Note
 -- also that the elements are lazily generated.
-sampleSubset :: (MonadMC m) => [a] -> Int -> m [a]
+sampleSubset :: (PrimMonad m) => [a] -> Int -> MC m [a]
 sampleSubset xs k = let
     n = length xs
     in sampleListHelp n xs $ sampleIntSubset n k
-{-# INLINE sampleSubset #-}
 
 -- | Strict version of 'sampleSubset'.
-sampleSubset' :: (MonadMC m) => [a] -> Int -> m [a]
+sampleSubset' :: (PrimMonad m) => [a] -> Int -> MC m [a]
 sampleSubset' xs k = do
     s <- sampleSubset xs k
     length s `seq` return s
-{-# INLINE sampleSubset' #-}
 
 -- | Sample a subset of the elements with the given weights.  Return
 -- the elements of the subset lazily in the order they were sampled.
-sampleSubsetWithWeights :: (MonadMC m) => [(Double,a)] -> Int -> m [a]
+sampleSubsetWithWeights :: (PrimMonad m) => [(Double,a)] -> Int -> MC m [a]
 sampleSubsetWithWeights wxs k = let
     (ws,xs) = unzip wxs
     n = length ws
     in sampleListHelp n xs $ sampleIntSubsetWithWeights ws n k
-{-# INLINE sampleSubsetWithWeights #-}
 
 -- | Strict version of 'sampleSubsetWithWeights'.
-sampleSubsetWithWeights' :: (MonadMC m) => [(Double,a)] -> Int -> m [a]
+sampleSubsetWithWeights' :: (PrimMonad m) => [(Double,a)] -> Int -> MC m [a]
 sampleSubsetWithWeights' wxs k = do
     s <- sampleSubsetWithWeights wxs k
     length s `seq` return s
-{-# INLINE sampleSubsetWithWeights' #-}
 
-sampleHelp :: (Monad m) => Int -> [a] -> m Int -> m a
+sampleHelp :: (PrimMonad m) => Int -> [a] -> MC m Int -> MC m a
 sampleHelp _n xs f = let
     arr = BV.fromList xs
     in liftM (BV.unsafeIndex arr) f
-{-# INLINE sampleHelp #-}
 
 sampleHelpU :: (Unbox a, Monad m) => Int -> [a] -> m Int -> m a
 sampleHelpU _n xs f = let
     arr = V.fromList xs
     in liftM (V.unsafeIndex arr) f
-{-# INLINE sampleHelpU #-}
 
 {-# RULES "sampleHelp/Double" forall n xs f.
               sampleHelp n (xs :: [Double]) f = sampleHelpU n xs f #-}
@@ -115,7 +108,6 @@ sampleListHelp :: (Monad m) => Int -> [a] -> m [Int] -> m [a]
 sampleListHelp _n xs f = let
     arr = BV.fromList xs
     in liftM (map $ BV.unsafeIndex arr) f
-{-# INLINE sampleListHelp #-}
 
 sampleListHelpU :: (Unbox a, Monad m) => Int -> [a] -> m [Int] -> m [a]
 sampleListHelpU _n xs f = let
@@ -129,26 +121,24 @@ sampleListHelpU _n xs f = let
 
 -- | @sampleInt n@ samples integers uniformly from @[ 0..n-1 ]@.  It is an
 -- error to call this function with a non-positive @n@.
-sampleInt :: (MonadMC m) => Int -> m Int
+sampleInt :: (PrimMonad m) => Int -> MC m Int
 sampleInt n | n < 1     = fail "invalid argument"
             | otherwise = uniformInt n
-{-# INLINE sampleInt #-}
 
 -- | @sampleIntWithWeights ws n@ samples integers from @[ 0..n-1 ]@ with the
 -- probability of choosing @i@ proportional to @ws !! i@.  The list @ws@ must
 -- have length equal to @n@.  Also, the elements of @ws@ must be non-negative
 -- with at least one nonzero entry.
-sampleIntWithWeights :: (MonadMC m) => [Double] -> Int -> m Int
+sampleIntWithWeights :: (PrimMonad m) => [Double] -> Int -> MC m Int
 sampleIntWithWeights ws n =
     let qjs = computeTable n ws
     in liftM (indexTable qjs) (uniform 0 1)
-{-# INLINE sampleIntWithWeights #-}
 
 -- | @sampleIntSubset n k@ samples a subset of size @k@ by sampling without
 -- replacement from the integers @{ 0, ..., n-1 }@.  The return value is a
 -- list of length @k@ with the elements in the subset in the order that they
 -- were sampled.  Note also that the elements are lazily generated.
-sampleIntSubset :: (MonadMC m) => Int -> Int -> m [Int]
+sampleIntSubset :: (PrimMonad m) => Int -> Int -> MC m [Int]
 sampleIntSubset n k | k < 0     = fail "negative subset size"
                     | k > n     = fail "subset size is too big"
                     | otherwise = do
@@ -171,20 +161,18 @@ sampleIntSubset n k | k < 0     = fail "negative subset size"
         MV.unsafeWrite ints u =<< MV.unsafeRead ints n'
         is <- sampleIntSubsetHelp ints us (n'-1)
         return (i:is)
-{-# INLINE sampleIntSubset #-}
 
 -- | Strict version of 'sampleIntSubset'.
-sampleIntSubset' :: (MonadMC m) => Int -> Int -> m [Int]
+sampleIntSubset' :: (PrimMonad m) => Int -> Int -> MC m [Int]
 sampleIntSubset' n k = do
     s <- sampleIntSubset n k
     length s `seq` return s
-{-# INLINE sampleIntSubset' #-}
 
 -- | @sampleIntSubsetWithWeights ws n k@ samplea size @k@ subset of
 -- @{ 0, ..., n-1 }@ with the given weights by sampling elements without
 -- replacement.  It returns the elements of the subset lazily in the order
 -- they were sampled.
-sampleIntSubsetWithWeights :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
+sampleIntSubsetWithWeights :: (PrimMonad m) => [Double] -> Int -> Int -> MC m [Int]
 sampleIntSubsetWithWeights ws n k = let
     w_sum0 = foldl' (+) 0 $ take n ws
     wjs = [ (w / w_sum0, j) | (w,j) <- reverse $ sort $ zip ws [ 0..n-1 ] ]
@@ -227,19 +215,17 @@ sampleIntSubsetWithWeights ws n k = let
             wj <- MV.unsafeRead ints i
             MV.unsafeWrite ints (i-1) wj
 
-{-# INLINE sampleIntSubsetWithWeights #-}
 
 -- | Strict version of 'sampleIntSubsetWithWeights'.
-sampleIntSubsetWithWeights' :: (MonadMC m) => [Double] -> Int -> Int -> m [Int]
+sampleIntSubsetWithWeights' :: (PrimMonad m) => [Double] -> Int -> Int -> MC m [Int]
 sampleIntSubsetWithWeights' ws n k = do
     s <- sampleIntSubsetWithWeights ws n k
     length s `seq` return s
-{-# INLINE sampleIntSubsetWithWeights' #-}
 
 -- | @shuffle xs@ randomly permutes the list @xs@ and returns
 -- the result.  All permutations of the elements of @xs@ are equally
 -- likely.
-shuffle :: (MonadMC m) => [a] -> m [a]
+shuffle :: (PrimMonad m) => [a] -> MC m [a]
 shuffle xs = let
     n = length xs
     in shuffleInt n >>= \swaps -> (return . BV.toList) $ BV.create $ do
@@ -255,9 +241,8 @@ shuffle xs = let
         y <- MV.unsafeRead marr j
         MV.unsafeWrite marr i y
         MV.unsafeWrite marr j x
-{-# INLINE shuffle #-}
 
-shuffleU :: (Unbox a, MonadMC m) => [a] -> m [a]
+shuffleU :: (Unbox a, PrimMonad m) => [a] -> MC m [a]
 shuffleU xs = let
     n = length xs
     in shuffleInt n >>= \swaps -> (return . V.toList) $ V.create $ do
@@ -273,7 +258,6 @@ shuffleU xs = let
         y <- MV.unsafeRead marr j
         MV.unsafeWrite marr i y
         MV.unsafeWrite marr j x
-{-# INLINE shuffleU #-}
 
 {-# RULES "shuffle/Double" forall xs.
               shuffle (xs :: [Double]) = shuffleU xs #-}
@@ -284,7 +268,7 @@ shuffleU xs = let
 -- | @shuffleInt n@ generates a sequence of swaps equivalent to a
 -- uniformly-chosen random permutatation of the integers @{0, ..., n-1}@.
 -- For an input of @n@, there are @n-1@ swaps, which are lazily generated.
-shuffleInt :: (MonadMC m) => Int -> m [(Int,Int)]
+shuffleInt :: (PrimMonad m) => Int -> MC m [(Int,Int)]
 shuffleInt n =
     let shuffleIntHelp i | i <= 1    = return []
                          | otherwise = unsafeInterleaveMC $ do
@@ -292,11 +276,9 @@ shuffleInt n =
             ijs <- shuffleIntHelp (i-1)
             return $ (i-1,j):ijs in
     shuffleIntHelp n
-{-# INLINE shuffleInt #-}
 
 -- | Strict version of 'shuffleInt'.
-shuffleInt' :: (MonadMC m) => Int -> m [(Int,Int)]
+shuffleInt' :: (PrimMonad m) => Int -> MC m [(Int,Int)]
 shuffleInt' n = do
     ss <- shuffleInt n
     length ss `seq` return ss
-{-# INLINE shuffleInt' #-}

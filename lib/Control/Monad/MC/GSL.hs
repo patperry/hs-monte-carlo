@@ -11,33 +11,47 @@
 
 module Control.Monad.MC.GSL (
     -- * The Monte Carlo monad
-    MC,
-    runMC,
-    evalMC,
-    execMC,
+    MC(..),
+    STMC,
+    IOMC,
 
-    -- * The Monte Carlo monad transformer
-    MCT,
-    runMCT,
-    evalMCT,
-    execMCT,
-    liftMCT,
-
-    -- * Pure random number generator creation
+    -- * Random number generators
     RNG,
+    IORNG,
+    STRNG,
     Seed,
     mt19937,
     mt19937WithState,
-    rngName,
-    rngSize,
-    rngState,
+    getRNGName,
+    getRNGSize,
+    getRNGState,
+    setRNGState,
 
-    -- * Overloaded Monte Carlo monad interface
-    module Control.Monad.MC.Class,
+    -- * Random number distributions
+    uniform,
+    uniformInt,
+    normal,
+    exponential,
+    levy,
+    levySkew,
+    poisson,
+    cauchy,
+    beta,
+    logistic,
+    pareto,
+    weibull,
+    gamma,
+    multinomial,
+    dirichlet,
+    bernoulli,
 
+    module Control.Monad.MC.Sample,
+    module Control.Monad.MC.Repeat,
+
+    -- * Unsafe operations
+    unsafeInterleaveMC,
     ) where
 
-import Control.Monad.MC.GSLBase ( MC, runMC, evalMC, execMC,
-    MCT, runMCT, evalMCT, execMCT, liftMCT, RNG, Seed, mt19937, mt19937WithState,
-    rngName, rngSize, rngState )
-import Control.Monad.MC.Class hiding ( RNG )
+import Control.Monad.MC.GSLBase
+import Control.Monad.MC.Sample
+import Control.Monad.MC.Repeat

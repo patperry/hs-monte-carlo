@@ -1,9 +1,10 @@
 dist
 *.hi
 *.o
-examples/Pi
-examples/Poker
-examples/Queue
-examples/Sampling
-tests/test-mc
+/examples/Binomial
+/examples/Pi
+/examples/Poker
+/examples/Queue
+/examples/Sampling
+/tests/test-mc
 

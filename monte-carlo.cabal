@@ -1,5 +1,5 @@
 name:           monte-carlo
-version:        0.5
+version:        0.6
 license:        BSD3
 license-file:   LICENSE
 author:         Patrick Perry
@@ -23,31 +23,27 @@ extra-source-files: NEWS examples/Binomial.hs examples/Pi.lhs
 library
     exposed-modules:
             Control.Monad.MC
-            Control.Monad.MC.Class
-            Control.Monad.MC.GSL
             Data.Summary
             Data.Summary.Bool
             Data.Summary.Double
             Data.Summary.Utils
 
     other-modules:
-            Control.Monad.MC.Base
+            Control.Monad.MC.GSL
             Control.Monad.MC.GSLBase
             Control.Monad.MC.Repeat
             Control.Monad.MC.Sample
             Control.Monad.MC.Walker
 
     extensions:
-            FlexibleInstances,
-            MultiParamTypeClasses,
-            TypeFamilies,
-            UndecidableInstances
+            TypeFamilies
 
-    build-depends:  base       >= 4     && < 5,
-                    gsl-random >= 0.4.3 && < 0.5,
-                    mtl        >= 1.1   && < 3.0,
-                    vector     >= 0.6   && < 0.11,
-                    deepseq    >= 1.0   && < 2.0
+    build-depends:  base         >= 4     && < 5,
+                    deepseq      >= 1.0   && < 2.0,
+                    gsl-random   >= 0.4.3 && < 0.5,
+                    primitive    >= 0.5   && < 0.6,
+                    transformers >= 0.3   && < 0.5,
+                    vector       >= 0.6   && < 0.11
 
     hs-source-dirs: lib
     ghc-options:    -Wall
@@ -66,13 +62,15 @@ test-suite monte-carlo-test
   ghc-options:
       -Wall -Werror
   build-depends:
-      base       >= 4     && < 5
-    , gsl-random >= 0.4.3 && < 0.5
-    , mtl        >= 1.1   && < 3.0
-    , vector     >= 0.6   && < 0.11
-    , ieee754 >= 0.7 && < 0.8
-    , random >=1.0 && < 1.1
-    , QuickCheck >= 2.4.0.1 && < 2.6
-    , test-framework-quickcheck2 >= 0.2 && < 0.4
-    , test-framework >= 0.4 && < 0.9
-    , deepseq >= 1.0 && < 2.0
+      base                       >= 4       && < 5,
+      deepseq                    >= 1.0     && < 2.0,
+      gsl-random                 >= 0.4.3   && < 0.5,
+      primitive                  >= 0.5     && < 0.6,
+      transformers               >= 0.3     && < 0.5,
+      vector                     >= 0.6     && < 0.11,
+      ieee754                    >= 0.7     && < 0.8,
+      random                     >= 1.0     && < 1.1,
+      QuickCheck                 >= 2.4.0.1 && < 2.6,
+      test-framework             >= 0.4     && < 0.9,
+      test-framework-quickcheck2 >= 0.2     && < 0.4
+

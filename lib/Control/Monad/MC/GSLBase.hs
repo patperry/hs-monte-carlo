@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.GSLBase
@@ -9,33 +9,22 @@
 --
 
 module Control.Monad.MC.GSLBase (
-    -- * The Monte Carlo monad
-    MC(..),
-    runMC,
-    evalMC,
-    execMC,
-    unsafeInterleaveMC,
-
     -- * The Monte Carlo monad transformer
-    MCT(..),
-    runMCT,
-    evalMCT,
-    execMCT,
-    unsafeInterleaveMCT,
-    liftMCT,
+    MC(..),
+    STMC,
+    IOMC,
 
     -- * Pure random number generator creation
     RNG,
+    IORNG,
+    STRNG,
     Seed,
     mt19937,
     mt19937WithState,
-    rngName,
-    rngSize,
-    rngState,
-
-    -- * Getting and setting the random number generator
-    getRNG,
-    setRNG,
+    getRNGName,
+    getRNGSize,
+    getRNGState,
+    setRNGState,
 
     -- * Random number distributions
     uniform,
@@ -53,55 +42,59 @@ module Control.Monad.MC.GSLBase (
     gamma,
     multinomial,
     dirichlet,
+    bernoulli,
+
+    -- * Unsafe operations
+    unsafeInterleaveMC,
     ) where
 
-import Control.Applicative      ( Applicative(..), (<$>) )
-import Control.Monad            ( ap, liftM, MonadPlus(..) )
-import Control.Monad.Cont       ( MonadCont(..) )
-import Control.Monad.Error      ( MonadError(..) )
-import Control.Monad.Reader     ( MonadReader(..) )
-import Control.Monad.State      ( MonadState(..) )
-import Control.Monad.Writer     ( MonadWriter(..) )
-import Control.Monad.Trans      ( MonadTrans(..), MonadIO(..) )
-import Data.Word
-import System.IO.Unsafe         ( unsafePerformIO, unsafeInterleaveIO )
+import Control.Applicative       ( Applicative(..) )
+import Control.Monad             ( liftM )
+import Control.Monad.IO.Class    ( MonadIO(..) )
+import Control.Monad.ST          ( ST )
+import Control.Monad.Primitive   ( PrimMonad(..), unsafePrimToPrim )
+import Control.Monad.Trans.Class ( MonadTrans(..) )
+import Data.Word                 ( Word8, Word64 )
+import System.IO.Unsafe          ( unsafeInterleaveIO )
 
 import qualified Data.Vector.Storable as VS
 
 import qualified GSL.Random.Gen as GSL
 import GSL.Random.Dist
 
--- | A Monte Carlo monad with an internal random number generator.
-newtype MC a = MC (GSL.RNG -> IO a)
 
--- | Run this Monte Carlo monad with the given initial random number generator,
--- getting the result and the new random number generator.
-runMC :: MC a -> RNG -> (a, RNG)
-runMC (MC g) (RNG r) = unsafePerformIO $ do
-    r' <- GSL.cloneRNG r
-    a  <- g r'
-    return (a,RNG r')
-{-# NOINLINE runMC #-}
+-- | A Monte Carlo monad transformer.  This type provides access
+-- to a random number generator while allowing operations in a
+-- base monad, @m@.
+newtype MC m a = MC { runMC :: RNG (PrimState m) -> m a }
 
--- | Evaluate this Monte Carlo monad and throw away the final random number
--- generator.  Very much like @fst@ composed with @runMC@.
-evalMC :: MC a -> RNG -> a
-evalMC g r = fst $ runMC g r
+-- | Type alias for when the base monad is 'ST'.
+type STMC s a = MC (ST s) a
 
--- | Exicute this Monte Carlo monad and return the final random number
--- generator.  Very much like @snd@ composed with @runMC@.
-execMC :: MC a -> RNG -> RNG
-execMC g r = snd $ runMC g r
+-- | Type alias for when the base monad is 'IO'.
+type IOMC a = MC IO a
 
-unsafeInterleaveMC :: MC a -> MC a
+
+-- | Get the baton from the Monte Carlo monad without performing any
+-- computations.  Useful but dangerous.
+unsafeInterleaveMC :: (PrimMonad m) => MC m a -> MC m a
 unsafeInterleaveMC (MC m) = MC $ \r ->
-    unsafeInterleaveIO (m r)
+    unsafePrimToPrim $ unsafeInterleaveIO $ unsafePrimToPrim (m r)
+{-# INLINE unsafeInterleaveMC #-}
 
-instance Functor MC where
-    fmap f (MC m) = MC $ \r ->
-        fmap f (m r)
 
-instance Monad MC where
+instance (Functor m) => Functor (MC m) where
+    fmap f (MC m) = MC $ \r -> fmap f (m r)
+    {-# INLINE fmap #-}
+
+instance (Applicative m) => Applicative (MC m) where
+    pure a = MC $ \_ -> pure a
+    {-# INLINE pure #-}
+
+    (MC gf) <*> (MC ga) = MC $ \r -> (gf r) <*> (ga r)
+    {-# INLINE (<*>) #-}
+
+instance (Monad m) => Monad (MC m) where
     return a = MC $ \_ -> return a
     {-# INLINE return #-}
 
@@ -111,250 +104,158 @@ instance Monad MC where
             in m' r
     {-# INLINE (>>=) #-}
 
-    fail s = MC $ \_ -> fail s
+    fail msg = MC $ \_ -> fail msg
     {-# INLINE fail #-}
 
-instance Applicative MC where
-    pure  = return
-    (<*>) = ap
-
--- | A parameterizable Monte Carlo monad for encapsulating an inner
--- monad.
-newtype MCT m a = MCT (GSL.RNG -> IO (m a))
-
--- | Similar to 'runMC'.
-runMCT :: (Monad m) => MCT m a -> RNG -> m (a,RNG)
-runMCT (MCT g) (RNG r) = unsafePerformIO $ do
-    r' <- GSL.cloneRNG r
-    ma <- g r'
-    return (ma >>= \a -> return (a, RNG r'))
-{-# NOINLINE runMCT #-}
-
--- | Similar to 'evalMC'.
-evalMCT :: (Monad m) => MCT m a -> RNG -> m a
-evalMCT g r = do
-    ~(a,_) <- runMCT g r
-    return a
-
--- | Similar to 'execMC'.
-execMCT :: (Monad m) => MCT m a -> RNG -> m RNG
-execMCT g r = do
-    ~(_,r') <- runMCT g r
-    return r'
-
--- | Take a Monte Carlo computations and lift it to an MCT computation.
-liftMCT :: (Monad m) => MC a -> MCT m a
-liftMCT (MC g) = MCT $ \r -> do
-    a <- g r
-    return (return a)
-{-# INLINE liftMCT #-}
-
-unsafeInterleaveMCT :: (Monad m) => MCT m a -> MCT m a
-unsafeInterleaveMCT (MCT g) = MCT $ \r ->
-    unsafeInterleaveIO (g r)
-{-# INLINE unsafeInterleaveMCT #-}
-
-instance (Monad m) => Functor (MCT m) where
-    fmap f (MCT g) = MCT $ \r -> do
-        ma <- g r
-        return (ma >>= return . f)
-    {-# INLINE fmap #-}
-
-instance (Monad m) => Monad (MCT m) where
-    return a = MCT $ \_ -> return (return a)
-    {-# INLINE return #-}
-
-    (MCT g) >>= k =
-        MCT $ \r -> do
-            ma <- g r
-            return $ ma >>= \a ->
-                let (MCT m') = k a
-                in unsafePerformIO $ m' r
-    {-# NOINLINE (>>=) #-}
-
-    fail str = MCT $ \_ -> fail str
-    {-# INLINE fail #-}
-
-instance (Monad m) => Applicative (MCT m) where
-    pure  = return
-    (<*>) = ap
-
-instance (MonadPlus m) => MonadPlus (MCT m) where
-    mzero = MCT $ \_ -> mzero
-    {-# INLINE mzero #-}
-
-    (MCT m) `mplus` (MCT n) =
-        MCT $ \r -> do
-            r' <- GSL.cloneRNG r
-            mr <- m r
-            nr <- n r'
-            return (mr `mplus` nr)
-
-instance MonadTrans MCT where
-    lift m = MCT $ \_ -> return m
-    {-# INLINE lift #-}
-
-instance (MonadCont m) => MonadCont (MCT m) where
-    callCC f = MCT $ \r ->
-        return $ callCC $ \k ->
-            let (MCT m) = f (\a -> MCT $ \_ -> return (k a))
-            in unsafePerformIO (m r)
-    {-# NOINLINE callCC #-}
-
-instance (MonadError e m) => MonadError e (MCT m) where
-    throwError             = lift . throwError
-    {-# INLINE throwError #-}
-
-    (MCT g) `catchError` h = MCT $ \r -> do
-        ma <- g r
-        return $ ma `catchError` \e ->
-            let (MCT m') = h e
-            in unsafePerformIO (m' r)
-    {-# NOINLINE catchError #-}
-
-instance (MonadIO m) => MonadIO (MCT m) where
-    liftIO = lift . liftIO
+instance (MonadIO m) => MonadIO (MC m) where
+    liftIO io = MC $ \_ -> liftIO io
     {-# INLINE liftIO #-}
 
-instance (MonadReader r m) => MonadReader r (MCT m) where
-    ask              = lift ask
-    {-# INLINE ask #-}
+instance MonadTrans MC where
+    lift m = MC $ \_ -> m
+    {-# INLINE lift #-}
 
-    local f (MCT g) = MCT $ \r -> do
-        ma <- g r
-        return $ local f ma
-    {-# INLINE local #-}
-
-instance (MonadState s m) => MonadState s (MCT m) where
-    get = lift get
-    {-# INLINE get #-}
-
-    put = lift . put
-    {-# INLINE put #-}
-
-instance (MonadWriter w m) => MonadWriter w (MCT m) where
-    tell           = lift . tell
-    {-# INLINE tell #-}
-
-    listen (MCT g) = MCT $ \r -> do
-        ma <- g r
-        return (listen ma)
-    {-# INLINE listen #-}
-
-    pass (MCT g) = MCT $ \r -> do
-        maf <- g r
-        return (pass maf)
-    {-# INLINE pass #-}
 
 ---------------------------- Random Number Generators -----------------------
 
--- | The random number generator type associated with 'MC' and 'MCT'.
-newtype RNG = RNG GSL.RNG
+-- | The random number generator type.
+newtype RNG s = RNG GSL.RNG
+
+-- | A shorter name for RNG in the 'IO' monad.
+type IORNG = RNG (PrimState IO)
+
+-- | A shorter name for RNG in the 'ST' monad.
+type STRNG s = RNG (PrimState (ST s))
 
 -- | The seed type for the random number generators.
 type Seed = Word64
 
+
 -- | Get the name of the random number generator algorithm.
-rngName :: RNG -> String
-rngName (RNG r) = unsafePerformIO $ GSL.getName r
-{-# NOINLINE rngName #-}
+getRNGName :: (PrimMonad m) => RNG (PrimState m) -> m String
+getRNGName (RNG r) = unsafePrimToPrim $ GSL.getName r
 
 -- | Get the size of the generator state, in bytes.
-rngSize :: RNG -> Int
-rngSize (RNG r) = fromIntegral $ unsafePerformIO $ GSL.getSize r
-{-# NOINLINE rngSize #-}
+getRNGSize :: (PrimMonad m) => RNG (PrimState m) -> m Int
+getRNGSize (RNG r) = liftM fromIntegral $ unsafePrimToPrim $ GSL.getSize r
 
 -- | Get the state of the generator.
-rngState :: RNG -> [Word8]
-rngState (RNG r) = unsafePerformIO $ GSL.getState r
-{-# NOINLINE rngState #-}
+getRNGState :: (PrimMonad m) => RNG (PrimState m) -> m [Word8]
+getRNGState (RNG r) = unsafePrimToPrim $ GSL.getState r
 
-getRNG :: MC RNG
-getRNG = MC (\r -> liftM RNG $ GSL.cloneRNG r)
-{-# INLINE getRNG #-}
+-- | Set the state of the generator.
+setRNGState :: (PrimMonad m) => RNG (PrimState m) -> [Word8] -> m ()
+setRNGState (RNG r) xs = unsafePrimToPrim $ GSL.setState r xs
 
-setRNG :: RNG -> MC ()
-setRNG (RNG r') = MC $ \r -> GSL.copyRNG r r'
-{-# INLINE setRNG #-}
-
--- | Get a Mersenne Twister random number generator seeded with the given
+-- | Create a Mersenne Twister random number generator seeded with the given
 -- value.
-mt19937 :: Seed -> RNG
-mt19937 s = unsafePerformIO $ do
+mt19937 :: (PrimMonad m) => Seed -> m (RNG (PrimState m))
+mt19937 s = unsafePrimToPrim $ do
     r <- GSL.newRNG GSL.mt19937
     GSL.setSeed r s
     return (RNG r)
-{-# NOINLINE mt19937 #-}
 
--- | Get a Mersenne Twister seeded with the given state.
-mt19937WithState :: [Word8] -> RNG
-mt19937WithState xs = unsafePerformIO $ do
+-- | Create a Mersenne Twister seeded with the given state.
+mt19937WithState :: (PrimMonad m) => [Word8] -> m (RNG (PrimState m))
+mt19937WithState xs = unsafePrimToPrim $ do
     r <- GSL.newRNG GSL.mt19937
     GSL.setState r xs
     return (RNG r)
-{-# NOINLINE mt19937WithState #-}
 
 -------------------------- Random Number Distributions ----------------------
 
-uniform :: Double -> Double -> MC Double
+-- | @uniform a b@ generates a value uniformly distributed in @[a,b)@.
+uniform :: (PrimMonad m) => Double -> Double -> MC m Double
 uniform 0 1 = liftRan0 GSL.getUniform
 uniform a b = liftRan2 getFlat a b
 
-uniformInt :: Int -> MC Int
+-- | @uniformInt n@ generates an integer uniformly in the range @[0,n-1]@.
+-- It is an error to call this function with a non-positive value.
+uniformInt :: (PrimMonad m) => Int -> MC m Int
 uniformInt = liftRan1 GSL.getUniformInt
 
-normal :: Double -> Double -> MC Double
-normal 0  1     =            liftRan0 getUGaussianRatioMethod
-normal mu 1     = (mu +) <$> liftRan0 getUGaussianRatioMethod
-normal 0  sigma =            liftRan1 getGaussianRatioMethod sigma
-normal mu sigma = (mu +) <$> liftRan1 getGaussianRatioMethod sigma
+-- | @normal mu sigma@ generates a Normal random variable with mean
+-- @mu@ and standard deviation @sigma@.
+normal :: (PrimMonad m) => Double -> Double -> MC m Double
+normal 0  1     =                liftRan0 getUGaussianRatioMethod
+normal mu 1     = liftM (mu +) $ liftRan0 getUGaussianRatioMethod
+normal 0  sigma =                liftRan1 getGaussianRatioMethod sigma
+normal mu sigma = liftM (mu +) $ liftRan1 getGaussianRatioMethod sigma
 
-exponential :: Double -> MC Double
+-- | @exponential mu@ generates an Exponential variate with mean @mu@.
+exponential :: (PrimMonad m) => Double -> MC m Double
 exponential = liftRan1 getExponential
 
-poisson :: Double -> MC Int
+-- | @poisson mu@ generates a Poisson random variable with mean @mu@.
+poisson :: (PrimMonad m) => Double -> MC m Int
 poisson = liftRan1 getPoisson
 
-levy :: Double -> Double -> MC Double
+-- | @levy c alpha@ gets a Levy alpha-stable variate with scale @c@ and
+-- exponent @alpha@.  The algorithm only works for @0 < alpha <= 2@.
+levy :: (PrimMonad m) => Double -> Double -> MC m Double
 levy = liftRan2 getLevy
 
-levySkew :: Double -> Double -> Double -> MC Double
+-- | @levySkew c alpha beta @ gets a skew Levy alpha-stable variate
+-- with scale @c@, exponent @alpha@, and skewness @beta@.  The skew
+-- parameter must lie in the range @[-1,1]@.  The algorithm only works
+-- for @0 < alpha <= 2@.
+levySkew :: (PrimMonad m) => Double -> Double -> Double -> MC m Double
 levySkew = liftRan3 getLevySkew
 
-cauchy :: Double -> MC Double
+-- | @cauchy a@ generates a Cauchy random variable with scale
+-- parameter @a@.
+cauchy :: (PrimMonad m) => Double -> MC m Double
 cauchy = liftRan1 getCauchy
 
-beta :: Double -> Double -> MC Double
+-- | @beta a b@ generates a beta random variable with
+-- parameters @a@ and @b@.
+beta :: (PrimMonad m) => Double -> Double -> MC m Double
 beta = liftRan2 getBeta
 
-logistic :: Double -> MC Double
+-- | @logistic a@ generates a logistic random variable with
+-- parameter @a@.
+logistic :: (PrimMonad m) => Double -> MC m Double
 logistic = liftRan1 getLogistic
 
-pareto :: Double -> Double -> MC Double
+-- | @pareto a b@ generates a Pareto random variable with
+-- exponent @a@ and scale @b@.
+pareto :: (PrimMonad m) => Double -> Double -> MC m Double
 pareto = liftRan2 getPareto
 
-weibull :: Double -> Double -> MC Double
+-- | @weibull a b@ generates a Weibull random variable with
+-- scale @a@ and exponent @b@.
+weibull :: (PrimMonad m) => Double -> Double -> MC m Double
 weibull = liftRan2 getWeibull
 
-gamma :: Double -> Double -> MC Double
+-- | @gamma a b@ generates a gamma random variable with
+-- parameters @a@ and @b@.
+gamma :: (PrimMonad m) => Double -> Double -> MC m Double
 gamma = liftRan2 getGamma
 
-multinomial :: Int -> VS.Vector Double -> MC (VS.Vector Int)
+-- | @multinomial n ps@ generates a multinomial random
+-- variable with parameters @ps@ formed by @n@ trials.
+multinomial :: (PrimMonad m) => Int -> VS.Vector Double -> MC m (VS.Vector Int)
 multinomial = liftRan2 getMultinomial
 
-dirichlet :: VS.Vector Double -> MC (VS.Vector Double)
+-- | @dirichlet alphas@ generates a Dirichlet random variable
+-- with parameters @alphas@.
+dirichlet :: (PrimMonad m) => VS.Vector Double -> MC m (VS.Vector Double)
 dirichlet = liftRan1 getDirichlet
 
+-- | Generate 'True' events with the given probability.
+bernoulli :: (PrimMonad m ) => Double -> MC m Bool
+bernoulli p = liftM (< p) $ uniform 0 1
+{-# INLINE bernoulli #-}
 
 
-liftRan0 :: (GSL.RNG -> IO a) -> MC a
-liftRan0 = MC
+liftRan0 :: (PrimMonad m) => (GSL.RNG -> IO a) -> MC m a
+liftRan0 f = MC $ \(RNG r) -> unsafePrimToPrim $ f r
 
-liftRan1 :: (GSL.RNG -> a -> IO b) -> a -> MC b
-liftRan1 f a = MC $ \r -> f r a
+liftRan1 :: (PrimMonad m) => (GSL.RNG -> a -> IO b) -> a -> MC m b
+liftRan1 f a = MC $ \(RNG r) -> unsafePrimToPrim $ f r a
 
-liftRan2 :: (GSL.RNG -> a -> b -> IO c) -> a -> b -> MC c
-liftRan2 f a b = MC $ \r -> f r a b
+liftRan2 :: (PrimMonad m) => (GSL.RNG -> a -> b -> IO c) -> a -> b -> MC m c
+liftRan2 f a b = MC $ \(RNG r) -> unsafePrimToPrim $ f r a b
 
-liftRan3 :: (GSL.RNG -> a -> b -> c -> IO d) -> a -> b -> c -> MC d
-liftRan3 f a b c = MC $ \r -> f r a b c
+liftRan3 :: (PrimMonad m) => (GSL.RNG -> a -> b -> c -> IO d) -> a -> b -> c -> MC m d
+liftRan3 f a b c = MC $ \(RNG r) -> unsafePrimToPrim $ f r a b c
