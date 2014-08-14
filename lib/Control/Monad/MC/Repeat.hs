@@ -11,6 +11,7 @@
 module Control.Monad.MC.Repeat (
     -- * Repeating computations
     foldMC,
+    forEachMC,
     repeatMC,
     replicateMC,
     ) where
@@ -21,7 +22,16 @@ import Control.Monad.ST( ST, runST )
 import Control.Monad.ST.Unsafe( unsafeInterleaveST )
 
 
-foldMC :: (PrimMonad m) => (a -> b -> MC m a) -> a -> Int -> MC m b -> MC m a
+-- | Generate a sequence of replicates and incrementally consume
+-- them via a left fold.
+--
+-- This fold is /not/ strict. The replicate consumer is responsible for
+-- forcing the evaluation of its result to avoid space leaks.
+foldMC :: (PrimMonad m) => (a -> b -> MC m a) -- ^ Replicate consumer.
+                        -> a                  -- ^ Initial state for replicate consumer.
+                        -> Int                -- ^ Number of replicates.
+                        -> MC m b             -- ^ Generator.
+                        -> MC m a
 foldMC f a n mb | n <= 0    = return a
                 | otherwise = do
     b <- mb
@@ -29,7 +39,21 @@ foldMC f a n mb | n <= 0    = return a
     foldMC f a' (n-1) mb
 {-# INLINE foldMC #-}
 
--- | Produce a lazy infinite list of values from the given seed and
+
+-- | A version of 'foldMC' that does not transform a state value.
+forEachMC :: (PrimMonad m) => Int            -- ^ Number of replicates.
+                           -> MC m a         -- ^ Generator.
+                           -> (a -> MC m ()) -- ^ Replicate consumer.
+                           -> MC m ()
+forEachMC n ma f | n <= 0    = return ()
+                 | otherwise = do
+    a <- ma
+    f a
+    forEachMC (n-1) ma f
+{-# INLINE forEachMC #-}
+
+
+-- | Produce a lazy infinite list of replicates from the given seed and
 -- Monte Carlo generator.
 repeatMC :: (forall s. ST s (STRNG s)) -> (forall s. STMC s a) -> [a]
 repeatMC mrng mc = runST $ do
@@ -40,6 +64,7 @@ repeatMC mrng mc = runST $ do
         a  <- m
         as <- go m
         return (a:as)
+
 
 -- | Produce a lazy list of the given length using the specified seed
 -- and Monte Carlo generator.
