@@ -53,8 +53,8 @@ forEachMC n ma f | n <= 0    = return ()
 {-# INLINE forEachMC #-}
 
 
--- | Produce a lazy infinite list of replicates from the given seed and
--- Monte Carlo generator.
+-- | Produce a lazy infinite list of replicates from the given random
+-- number generator and Monte Carlo procedure.
 repeatMC :: (forall s. ST s (STRNG s)) -> (forall s. STMC s a) -> [a]
 repeatMC mrng mc = runST $ do
     rng <- mrng
@@ -66,7 +66,7 @@ repeatMC mrng mc = runST $ do
         return (a:as)
 
 
--- | Produce a lazy list of the given length using the specified seed
--- and Monte Carlo generator.
+-- | Produce a lazy list of the given length using the specified
+-- random number genrator and Monte Carlo procedure.
 replicateMC :: (forall s. ST s (STRNG s)) -> Int -> (forall s. STMC s a) -> [a]
 replicateMC mrng n mc = take n $ repeatMC mrng mc

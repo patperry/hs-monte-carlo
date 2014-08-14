@@ -85,9 +85,9 @@ update (S n m s l h) x =
     in S n' m' s' l' h'
 
 -- | Take the union of two summaries.
--- Use the updating rules from Chan et al. "Updating Formulae and a Pairwise
---   Algorithm for Computing Sample Variances," available at
--- ftp://reports.stanford.edu/pub/cstr/reports/cs/tr/79/773/CS-TR-79-773.pdf
+-- Use the updating rules from Chan et al. \"Updating Formulae and a Pairwise
+--   Algorithm for Computing Sample Variances,\" available at
+--   <http://infolab.stanford.edu/pub/cstr/reports/cs/tr/79/773/CS-TR-79-773.pdf>.
 union :: Summary -> Summary -> Summary
 union (S na ma sa la ha) (S nb mb sb lb hb) =
     let delta = mb - ma

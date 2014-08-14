@@ -33,6 +33,6 @@ interval level xbar se | not (level > 0 && level < 1) =
     in (xbar-delta, xbar+delta)
 
 
--- | Tests if the value is in the open interval (a,b)
+-- | Tests if the value is in the open interval (a,b).
 inInterval :: Double -> (Double,Double) -> Bool
 x `inInterval` (a,b) = x > a && x < b

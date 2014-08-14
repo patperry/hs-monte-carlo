@@ -6,9 +6,7 @@
 -- Maintainer : Patrick Perry <patperry@gmail.com>
 -- Stability  : experimental
 --
--- A monad and monad transformer for monte carlo computations.  Currently,
--- the default is the GNU Scientific Library-based implementation, but this
--- may change in the future.
+-- A monad and monad transformer for Monte Carlo computations.
 --
 
 module Control.Monad.MC (

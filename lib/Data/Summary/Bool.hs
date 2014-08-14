@@ -81,11 +81,11 @@ update (S n c) i =
 sampleSize :: Summary -> Int
 sampleSize (S n _) = n
 
--- | Get the number of 'True' values
+-- | Get the number of 'True' values.
 count :: Summary -> Int
 count (S _ c) = c
 
--- | Get the proportion of 'True' events.
+-- | Get the proportion of 'True' values.
 sampleMean :: Summary -> Double
 sampleMean (S n c) = fromIntegral c / fromIntegral n
 

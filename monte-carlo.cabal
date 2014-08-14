@@ -7,12 +7,14 @@ maintainer:     Patrick Perry <patperry@gmail.com>
 homepage:       http://github.com/patperry/hs-monte-carlo
 category:       Math
 synopsis:       A monad and transformer for Monte Carlo calculations.
-description:    A monad and transformer for Monte Carlo calculations.  The
-                monads carry and provide access to a random number generator.
-                Importantly, they only keep one copy of the generator state,
-                and so are much more efficient than MonadRandom.  Currently,
-                only the generator that comes with the GNU Scientific Library
-                (GSL) is supported.
+description:    A monad and transformer for performing Monte Carlo
+                calculations. This monad carries and provides access to
+                a pseudo-random number generator. Internally, the monad
+                mutates rather than copies the random gnerator state.  By
+                avoiding copies, it can deliver faster performance than
+                many pure random number implementations.  The package is
+                built around the facilities provided by the GNU Scientific
+                Library (GSL).
 build-type:     Simple
 stability:      experimental
 cabal-version:  >= 1.8
