@@ -10,41 +10,7 @@
 -- of the functions in the GNU Scientific Library.
 
 module Control.Monad.MC.GSL (
-    -- * The Monte Carlo monad
-    MC(..),
-    STMC,
-    IOMC,
-
-    -- * Random number generators
-    RNG,
-    IORNG,
-    STRNG,
-    Seed,
-    mt19937,
-    mt19937WithState,
-    getRNGName,
-    getRNGSize,
-    getRNGState,
-    setRNGState,
-
-    -- * Random number distributions
-    uniform,
-    uniformInt,
-    normal,
-    exponential,
-    levy,
-    levySkew,
-    poisson,
-    cauchy,
-    beta,
-    logistic,
-    pareto,
-    weibull,
-    gamma,
-    multinomial,
-    dirichlet,
-    bernoulli,
-
+    module Control.Monad.MC.GSLBase,
     module Control.Monad.MC.Sample,
     module Control.Monad.MC.Repeat,
     ) where

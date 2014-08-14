@@ -55,8 +55,8 @@ forEachMC n ma f | n <= 0    = return ()
 
 -- | Produce a lazy infinite list of replicates from the given random
 -- number generator and Monte Carlo procedure.
-repeatMC :: (forall s. ST s (STRNG s)) -> (forall s. STMC s a) -> [a]
-repeatMC mrng mc = runST $ do
+repeatMC :: (forall s. STMC s a) -> (forall s. ST s (STRNG s)) -> [a]
+repeatMC mc mrng = runST $ do
     rng <- mrng
     go $ runMC mc rng
   where
@@ -68,5 +68,6 @@ repeatMC mrng mc = runST $ do
 
 -- | Produce a lazy list of the given length using the specified
 -- random number genrator and Monte Carlo procedure.
-replicateMC :: (forall s. ST s (STRNG s)) -> Int -> (forall s. STMC s a) -> [a]
-replicateMC mrng n mc = take n $ repeatMC mrng mc
+replicateMC :: Int -> (forall s. STMC s a) -> (forall s. ST s (STRNG s)) -> [a]
+replicateMC n mc mrng = take n $ repeatMC mc mrng
+

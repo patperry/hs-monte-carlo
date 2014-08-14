@@ -1,7 +1,6 @@
 
 import Control.Monad
 import Control.Monad.Primitive( PrimMonad )
-import Control.Monad.ST( runST )
 import Data.List( foldl' )
 import Text.Printf( printf )
 
@@ -201,7 +200,7 @@ summarizeService cs r =
 -- | An infinite stream of customerEvents.  This stream uses its own private 
 -- random number generator (mt19937 is the Mersenne-Twister algorithm).
 customerEvents :: Seed -> [CustomerEvent]
-customerEvents seed = repeatMC (mt19937 seed) customerEvent
+customerEvents seed = customerEvent `repeatMC` (mt19937 seed)
 
 
 -- | Given a seed for the customers and a seed for the restaurant, run the
@@ -210,10 +209,7 @@ simulation :: Seed -> Seed -> Int -> Summary
 simulation customerSeed restaurantSeed n = let
     cs = take n $ customerEvents customerSeed
     r  = emptyRestaurant
-    in runST $ do
-        rng <- mt19937 restaurantSeed
-        runMC (summarizeService cs r) rng
-
+    in evalMC (summarizeService cs r) (mt19937 restaurantSeed)
 
 -- | Run the program
 main =

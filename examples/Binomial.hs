@@ -3,7 +3,6 @@ module Main
 
 import Control.Monad
 import Control.Monad.Primitive( PrimMonad )
-import Control.Monad.ST( runST )
 import Data.List( foldl' )
 import Text.Printf( printf )
 
@@ -44,7 +43,7 @@ main =
         n    = 10
         p    = 0.2
         size = 500
-        c    = runST $ mt19937 seed >>= runMC (coverage n p size reps)
+        c    = (coverage n p size reps) `evalMC` (mt19937 seed)
     in
         printf "\nOf %d 95%%-intervals, %d contain the true value.\n" reps c
 

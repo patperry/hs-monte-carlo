@@ -81,7 +81,7 @@ main =
     let seed   = 0
         reps   = 100000
         counts = foldl' updateCounts emptyCounts $
-                     replicateMC (mt19937 seed) reps deal
+                     replicateMC reps deal (mt19937 seed)
     in do
         printf "\n"
         printf "    Hand       Count    Probability     99%% Interval   \n"

@@ -5,8 +5,7 @@ of them fall in the unit circle.
 
 \begin{code}
 import Control.Applicative( liftA2, pure )
-import Control.Monad.MC( STMC, foldMC, mt19937, runMC, uniform )
-import Control.Monad.ST( runST )
+import Control.Monad.MC( STMC, evalMC, foldMC, mt19937, uniform )
 import Data.Monoid( (<>), mempty )
 import Data.Summary.Bool( empty, update, sampleMean, sampleSE )
 import Data.Summary( interval )
@@ -60,7 +59,7 @@ estimatePi n = let
 main =
     let seed    = 0
         n       = 1000000 
-        (mu,se) = runST $ mt19937 seed >>= runMC (estimatePi n)
+        (mu,se) = estimatePi n `evalMC` mt19937 seed
         (l,u)   = interval 0.95 mu se
     in do
         printf "\nEstimate: %g" mu

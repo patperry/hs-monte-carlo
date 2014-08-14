@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes, TypeFamilies #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.GSLBase
@@ -13,8 +13,9 @@ module Control.Monad.MC.GSLBase (
     MC(..),
     STMC,
     IOMC,
+    evalMC,
 
-    -- * Pure random number generator creation
+    -- * Random number generators
     RNG,
     IORNG,
     STRNG,
@@ -48,7 +49,7 @@ module Control.Monad.MC.GSLBase (
 import Control.Applicative       ( Applicative(..) )
 import Control.Monad             ( liftM )
 import Control.Monad.IO.Class    ( MonadIO(..) )
-import Control.Monad.ST          ( ST )
+import Control.Monad.ST          ( ST, runST )
 import Control.Monad.Primitive   ( PrimMonad(..), unsafePrimToPrim )
 import Control.Monad.Trans.Class ( MonadTrans(..) )
 import Data.Word                 ( Word8, Word64 )
@@ -69,6 +70,14 @@ type STMC s a = MC (ST s) a
 
 -- | Type alias for when the base monad is 'IO'.
 type IOMC a = MC IO a
+
+
+-- | Evaluate the result of a Monte Carlo computation using the given
+-- random number generator.
+evalMC :: (forall s. STMC s a) -> (forall s. ST s (STRNG s)) -> a
+evalMC ma mr = runST $ do
+    r <- mr
+    runMC ma r
 
 
 instance (Functor m) => Functor (MC m) where
