@@ -47,9 +47,6 @@ module Control.Monad.MC.GSL (
 
     module Control.Monad.MC.Sample,
     module Control.Monad.MC.Repeat,
-
-    -- * Unsafe operations
-    unsafeInterleaveMC,
     ) where
 
 import Control.Monad.MC.GSLBase

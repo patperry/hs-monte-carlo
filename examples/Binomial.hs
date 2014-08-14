@@ -22,19 +22,21 @@ binomial n p = let
 -- a binomial with the given parameters.
 binomialMean :: (PrimMonad m) => Int -> Double -> Int -> MC m (Double,Double)
 binomialMean n p reps =
-    liftM (sampleCI 0.95 . summary . map fromIntegral) $
-        replicateMC reps (binomial n p)
+    liftM (sampleCI 0.95) $
+        foldMC (\stats x -> return $ update stats (fromIntegral x)) empty
+               reps (binomial n p)
 
 -- | Compute @reps@ 95% confidence intervals for the mean of an @(n,p)@
 -- binormal based on samples of the given size, and record the number
 -- of intervals that contain the true mean.
 coverage :: (PrimMonad m) => Int -> Double -> Int -> Int -> MC m Int
 coverage n p size reps =
-    liftM (length . filter (mu `inInterval`)) $
-        replicateMC reps $
-            binomialMean n p size
+    foldMC (\tot ci -> return $ update tot (mu `inInterval` ci)) 0
+           reps (binomialMean n p size)
   where
     mu = fromIntegral n * p
+    update tot b = case b of True  -> tot + 1
+                             False -> tot
 
 main =
     let seed = 0

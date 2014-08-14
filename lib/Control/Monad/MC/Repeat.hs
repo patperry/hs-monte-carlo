@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.Repeat
@@ -9,26 +10,38 @@
 
 module Control.Monad.MC.Repeat (
     -- * Repeating computations
+    foldMC,
     repeatMC,
     replicateMC,
     ) where
 
 import Control.Monad.Primitive( PrimMonad )
 import Control.Monad.MC.GSLBase
+import Control.Monad.ST( ST, runST )
+import Control.Monad.ST.Unsafe( unsafeInterleaveST )
 
--- | Produce a lazy infinite list of values from the given Monte Carlo
--- generator.
-repeatMC :: (PrimMonad m) => MC m a -> MC m [a]
-repeatMC = interleaveSequence . repeat
 
--- | Produce a lazy list of the given length using the specified
--- generator.
-replicateMC :: (PrimMonad m) => Int -> MC m a -> MC m [a]
-replicateMC n = interleaveSequence . replicate n
+foldMC :: (PrimMonad m) => (a -> b -> MC m a) -> a -> Int -> MC m b -> MC m a
+foldMC f a n mb | n <= 0    = return a
+                | otherwise = do
+    b <- mb
+    a' <- f a b
+    a' `seq` foldMC f a' (n-1) mb
+{-# INLINE foldMC #-}
 
-interleaveSequence :: (PrimMonad m) => [MC m a] -> MC m [a]
-interleaveSequence []     = return []
-interleaveSequence (m:ms) = unsafeInterleaveMC $ do
-    a  <- m
-    as <- interleaveSequence ms
-    return (a:as)
+-- | Produce a lazy infinite list of values from the given seed and
+-- Monte Carlo generator.
+repeatMC :: (forall s. ST s (STRNG s)) -> (forall s. STMC s a) -> [a]
+repeatMC mrng mc = runST $ do
+    rng <- mrng
+    go $ runMC mc rng
+  where
+    go m = unsafeInterleaveST $ do
+        a  <- m
+        as <- go m
+        return (a:as)
+
+-- | Produce a lazy list of the given length using the specified seed
+-- and Monte Carlo generator.
+replicateMC :: (forall s. ST s (STRNG s)) -> Int -> (forall s. STMC s a) -> [a]
+replicateMC mrng n mc = take n $ repeatMC mrng mc

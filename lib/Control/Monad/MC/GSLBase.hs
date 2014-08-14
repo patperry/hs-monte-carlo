@@ -43,9 +43,6 @@ module Control.Monad.MC.GSLBase (
     multinomial,
     dirichlet,
     bernoulli,
-
-    -- * Unsafe operations
-    unsafeInterleaveMC,
     ) where
 
 import Control.Applicative       ( Applicative(..) )
@@ -55,7 +52,6 @@ import Control.Monad.ST          ( ST )
 import Control.Monad.Primitive   ( PrimMonad(..), unsafePrimToPrim )
 import Control.Monad.Trans.Class ( MonadTrans(..) )
 import Data.Word                 ( Word8, Word64 )
-import System.IO.Unsafe          ( unsafeInterleaveIO )
 
 import qualified Data.Vector.Storable as VS
 
@@ -73,14 +69,6 @@ type STMC s a = MC (ST s) a
 
 -- | Type alias for when the base monad is 'IO'.
 type IOMC a = MC IO a
-
-
--- | Get the baton from the Monte Carlo monad without performing any
--- computations.  Useful but dangerous.
-unsafeInterleaveMC :: (PrimMonad m) => MC m a -> MC m a
-unsafeInterleaveMC (MC m) = MC $ \r ->
-    unsafePrimToPrim $ unsafeInterleaveIO $ unsafePrimToPrim (m r)
-{-# INLINE unsafeInterleaveMC #-}
 
 
 instance (Functor m) => Functor (MC m) where

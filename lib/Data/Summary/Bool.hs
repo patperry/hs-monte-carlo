@@ -13,7 +13,9 @@ module Data.Summary.Bool (
     -- * The @Summary@ data type
     Summary,
     summary,
+    empty,
     update,
+    union,
 
     -- * @Summary@ properties
     sampleSize,

@@ -80,8 +80,8 @@ updateCounts counts cs = Map.insertWith' (+) (hand cs) 1 counts
 main =
     let seed   = 0
         reps   = 100000
-        counts = foldl' updateCounts emptyCounts $ runST $
-                     mt19937 seed >>= runMC (replicateMC reps deal)
+        counts = foldl' updateCounts emptyCounts $
+                     replicateMC (mt19937 seed) reps deal
     in do
         printf "\n"
         printf "    Hand       Count    Probability     99%% Interval   \n"
