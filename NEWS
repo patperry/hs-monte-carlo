@@ -1,6 +1,6 @@
 Changes in 0.6:
 
-* Major overhaul. Most client code will break.
+* Major overhaul. A lot of client code will break.
 
 * Replaced the old MC type with a monad transformer,
   requiring the base monad to be an instance of PrimMonad.
@@ -14,14 +14,16 @@ Changes in 0.6:
 
 * Added new fold operation foldMC.
 
-* Simplified module structure.
+* Refactored and simplified sampling and shuffling functions.  The
+  "sampleSubset" functions are strict now.
 
-* Renamed Data.Summary.Utils to Data.Summary.  This means that Data.Summary
-  is no longer an alias for Data.Summary.Double.
+* Hide Data.Summary.Utils, and remove Data.Summary.
 
-* Added empty, union operations to Summary modules.
+* Change Data.Summary.Bool and Data.Summary.Double interfaces to mimic
+  the Data.Set functions.  Like Data.Set, these modules should now
+  be used with qualified imports.
 
-* Refactored and simplified sampling and shuffling functions.
+* Removed NFData instances from Summary types; add Eq instances.
 
 * Updated examples.
 

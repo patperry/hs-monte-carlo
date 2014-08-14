@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module     : Data.Summary
+-- Module     : Data.Summary.Utils
 -- Copyright  : Copyright (c) 2010, Patrick Perry <patperry@gmail.com>
 -- License    : BSD3
 -- Maintainer : Patrick Perry <patperry@gmail.com>
@@ -9,7 +9,7 @@
 -- Utilities for data summaries.
 --
 
-module Data.Summary (
+module Data.Summary.Utils (
     interval,
     inInterval,
     ) where

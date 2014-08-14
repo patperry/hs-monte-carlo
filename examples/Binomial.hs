@@ -7,8 +7,7 @@ import Data.List( foldl' )
 import Text.Printf( printf )
 
 import Control.Monad.MC
-import Data.Summary( inInterval )
-import Data.Summary.Double
+import qualified Data.Summary.Double as S
 
 -- | Sample from a binomial distribution with the given parameters.
 binomial :: (PrimMonad m) => Int -> Double -> MC m Int
@@ -21,8 +20,8 @@ binomial n p = let
 -- a binomial with the given parameters.
 binomialMean :: (PrimMonad m) => Int -> Double -> Int -> MC m (Double,Double)
 binomialMean n p reps =
-    liftM (sampleCI 0.95) $
-        foldMC (\stats x -> return $! update stats (fromIntegral x)) empty
+    liftM (S.meanCI 0.95) $
+        foldMC (\s x -> return $! S.insertWith fromIntegral x s) S.empty
                reps (binomial n p)
 
 -- | Compute @reps@ 95% confidence intervals for the mean of an @(n,p)@
@@ -34,8 +33,8 @@ coverage n p size reps =
            reps (binomialMean n p size)
   where
     mu = fromIntegral n * p
-    update tot b = case b of True  -> tot + 1
-                             False -> tot
+    x `inInterval` (a,b) = x > a && x < b
+    update tot b = tot + (if b then 1 else 0)
 
 main =
     let seed = 0

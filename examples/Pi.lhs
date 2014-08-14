@@ -4,11 +4,10 @@ generating random points in the unit box, and counting how many
 of them fall in the unit circle.
 
 \begin{code}
-import Control.Applicative( liftA2, pure )
+import Control.Monad( liftM2 )
 import Control.Monad.MC( STMC, evalMC, foldMC, mt19937, uniform )
 import Data.Monoid( (<>), mempty )
-import Data.Summary.Bool( empty, update, sampleMean, sampleSE )
-import Data.Summary( interval )
+import qualified Data.Summary.Bool as S
 import Text.Printf( printf )
 \end{code}
 
@@ -39,7 +38,7 @@ value in the range (-1,1), then returns the pair (x,y):
 
 \begin{code}
 unitBox :: STMC s (Double,Double)
-unitBox = liftA2 (,) (uniform (-1) 1)
+unitBox = liftM2 (,) (uniform (-1) 1)
                      (uniform (-1) 1)
 \end{code}
 
@@ -50,8 +49,8 @@ unitBox = liftA2 (,) (uniform (-1) 1)
 estimatePi :: Int -> STMC s (Double,Double)
 estimatePi n = let
     circ = fmap inUnitCircle unitBox
-    mc   = foldMC (\s x -> pure $! update s x) empty n circ
-    in fmap (\s -> let (mu,se) = (sampleMean s, sampleSE s)
+    mc   = foldMC (\s x -> return $! S.insert x s) S.empty n circ
+    in fmap (\s -> let (mu,se) = (S.mean s, S.meanSE s)
                    in (4*mu,4*se)) mc
 \end{code}
 
@@ -60,7 +59,7 @@ main =
     let seed    = 0
         n       = 1000000 
         (mu,se) = estimatePi n `evalMC` mt19937 seed
-        (l,u)   = interval 0.95 mu se
+        (l,u)   = (mu - 2.576 * se, mu + 2.576 * se)
     in do
         printf "\nEstimate: %g" mu
         printf "\n99%% Confidence Interval: (%g, %g)" l u

@@ -19,13 +19,12 @@ build-type:     Simple
 stability:      experimental
 cabal-version:  >= 1.8
 extra-source-files: NEWS examples/Binomial.hs examples/Pi.lhs
-                    examples/Poker.hs  examples/Queue.hs tests/Main.hs
+                    examples/Poker.hs examples/Queue.hs tests/Main.hs
                     tests/Makefile
 
 library
     exposed-modules:
             Control.Monad.MC
-            Data.Summary
             Data.Summary.Bool
             Data.Summary.Double
 
@@ -35,13 +34,13 @@ library
             Control.Monad.MC.Repeat
             Control.Monad.MC.Sample
             Control.Monad.MC.Walker
+            Data.Summary.Utils
 
     extensions:
             RankNTypes
             TypeFamilies
 
     build-depends:  base         >= 4     && < 5,
-                    deepseq      >= 1.0   && < 2.0,
                     gsl-random   >= 0.4.3 && < 0.5,
                     primitive    >= 0.5   && < 0.6,
                     transformers >= 0.3   && < 0.5,
@@ -65,7 +64,6 @@ test-suite monte-carlo-test
       -Wall -Werror
   build-depends:
       base                       >= 4       && < 5,
-      deepseq                    >= 1.0     && < 2.0,
       gsl-random                 >= 0.4.3   && < 0.5,
       primitive                  >= 0.5     && < 0.6,
       transformers               >= 0.3     && < 0.5,

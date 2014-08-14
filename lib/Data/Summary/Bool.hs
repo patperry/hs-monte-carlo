@@ -10,28 +10,45 @@
 --
 
 module Data.Summary.Bool (
-    -- * The @Summary@ data type
+    -- * Summary type
     Summary,
-    summary,
-    empty,
-    update,
-    union,
 
-    -- * @Summary@ properties
-    sampleSize,
-    count,
-    sampleMean,
-    sampleSE,
-    sampleCI,
+    -- * Properties
+    size,
+    sum,
+    mean,
+    meanSE,
+    meanCI,
+
+    -- * Construction
+    empty,
+    singleton,
+
+    -- * Insertion
+    insert,
+    insertWith,
+
+    -- * Combine
+    union,
+    unions,
+
+    -- * Conversion
+    -- ** Lists
+    fromList,
+    fromListWith,
+
+    -- ** Statistics
+    toStats,
+    fromStats,
 
     ) where
 
-import Control.DeepSeq
+import Prelude hiding (sum)
 import Data.List( foldl' )
-import Data.Monoid
-import Text.Printf
+import Data.Monoid( Monoid(..) )
+import Text.Printf( printf )
 
-import Data.Summary
+import Data.Summary.Utils( interval )
 
 
 -- | A type for storing summary statistics for a data set of
@@ -39,63 +56,86 @@ import Data.Summary
 -- of 'True' events and gives estimates for the success
 -- probability.  'True' is interpreted as a one, and 'False'
 -- is interpreted as a zero.
-data Summary = S {-# UNPACK #-} !Int  -- sample size
-                 {-# UNPACK #-} !Int  -- number of successes
+data Summary = S {-# UNPACK #-} !Int -- number of observations
+                 {-# UNPACK #-} !Int -- number of True values
+    deriving(Eq)
 
 instance Show Summary where
-    show s@(S n c) =
-        printf "    sample size: %d" n
-        ++ printf "\n      successes: %d" c
-        ++ printf "\n     proportion: %g" (sampleMean s)
-        ++ printf "\n             SE: %g" (sampleSE s)
+    show s@(S n x) =
+             printf "    sample size: %d" n
+        ++ printf "\n      successes: %d" x
+        ++ printf "\n     proportion: %g" (mean s)
+        ++ printf "\n             SE: %g" (meanSE s)
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
-      where (c1,c2) = sampleCI 0.99 s
+      where (c1,c2) = meanCI 0.99 s
 
 instance Monoid Summary where
     mempty = empty
     mappend = union
 
-instance NFData Summary
+-- | Number of observations.
+size :: Summary -> Int
+size (S n _) = n
 
+-- | Number of 'True' values.
+sum :: Summary -> Int
+sum (S _ x) = x
 
--- | Get a summary of a list of values.
-summary :: [Bool] -> Summary
-summary = foldl' update empty
+-- | Proportion of 'True' values.
+mean :: Summary -> Double
+mean (S n x) = fromIntegral x / fromIntegral n
+
+-- | Standard error for the mean (proportion of 'True' values).
+meanSE :: Summary -> Double
+meanSE s = sqrt (p*(1-p) / n)
+  where p = mean s
+        n = fromIntegral $ size s
+
+-- | Central Limit Theorem based confidence interval for the
+-- population mean (proportion) at the specified coverage level.  The
+-- level must be in the range @(0,1)@.
+meanCI :: Double -> Summary -> (Double,Double)
+meanCI level s = interval level (mean s) (meanSE s)
 
 -- | Get an empty summary.
 empty :: Summary
 empty = S 0 0
 
--- | Take the union of two summaries.
-union :: Summary -> Summary -> Summary
-union (S na ca) (S nb cb) = S (na + nb) (ca + cb)
+-- | Summarize a single value.
+singleton :: Bool -> Summary
+singleton x = S 1 (if x then 1 else 0)
 
 -- | Update the summary with a data point.
-update :: Summary -> Bool -> Summary
-update (S n c) i =
+insert :: Bool -> Summary -> Summary
+insert y (S n x) =
     let n' = n+1
-        c' = if i then c+1 else c
-    in S n' c'
+        x' = if y then x+1 else x
+    in S n' x'
 
--- | Get the sample size.
-sampleSize :: Summary -> Int
-sampleSize (S n _) = n
+-- | Apply a function and update the summary with the result.
+insertWith :: (a -> Bool) -> a -> Summary -> Summary
+insertWith f a = insert (f a)
 
--- | Get the number of 'True' values.
-count :: Summary -> Int
-count (S _ c) = c
+-- | Take the union of two summaries.
+union :: Summary -> Summary -> Summary
+union (S na xa) (S nb xb) = S (na + nb) (xa + xb)
 
--- | Get the proportion of 'True' values.
-sampleMean :: Summary -> Double
-sampleMean (S n c) = fromIntegral c / fromIntegral n
+-- | Take the union of a list of summaries.
+unions :: [Summary] -> Summary
+unions = foldl' union empty
 
--- | Get the standard error for the sample proportion.
-sampleSE :: Summary -> Double
-sampleSE s = sqrt (p*(1-p) / n)
-  where p = sampleMean s
-        n = fromIntegral $ sampleSize s
+-- | Get a summary of a list of values.
+fromList :: [Bool] -> Summary
+fromList = foldl' (flip insert) empty
 
--- | Get a Central Limit Theorem-based confidence interval for the mean
--- with the specified coverage level.  The level must be in the range @(0,1)@.
-sampleCI :: Double -> Summary -> (Double,Double)
-sampleCI level s = interval level (sampleMean s) (sampleSE s)
+-- | Map a function over a list of values and summarize the results.
+fromListWith :: (a -> Bool) -> [a] -> Summary
+fromListWith f = fromList . map f
+
+-- | Convert to (size,sum).
+toStats :: Summary -> (Int,Int)
+toStats (S n x) = (n,x)
+
+-- | Convert from (size,sum).  No validation is performed.
+fromStats :: Int -> Int -> Summary
+fromStats = S

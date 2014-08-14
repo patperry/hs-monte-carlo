@@ -5,7 +5,8 @@ import Data.List( foldl' )
 import Text.Printf( printf )
 
 import Control.Monad.MC
-import Data.Summary.Double
+import Data.Summary.Double( Summary )
+import qualified Data.Summary.Double as S
 
 
 -- | There a three items on the menu.
@@ -191,8 +192,9 @@ foldRestaurant f a (c:cs) r = do
 -- | Compute a summary of the total waiting times for each customer.
 summarizeService :: (PrimMonad m) => [CustomerEvent] -> Restaurant -> MC m Summary
 summarizeService cs r =
-    foldRestaurant (\s ss -> return $! foldl' update s $ map totalTime ss)
-                   empty cs r
+    foldRestaurant (\s ss -> return $!
+                                 foldl' (flip $ S.insertWith totalTime) s ss)
+                   S.empty cs r
   where
     totalTime (Service _ w s) = w+s
 

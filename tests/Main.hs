@@ -4,7 +4,8 @@ module Main where
 import Control.Monad
 import Data.AEq
 import Data.Monoid
-import Data.Summary
+import Data.Summary.Double( Summary )
+import qualified Data.Summary.Double as S
 import Test.QuickCheck
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
@@ -40,17 +41,17 @@ probOf table i =
 
 prop_monoid_update_equiv :: [Double] -> [Double] -> Bool
 prop_monoid_update_equiv xs ys =
-    approxEqualS (summary $ xs <> ys)
-                 (summary xs <> summary ys)
+    approxEqualS (S.fromList $ xs <> ys)
+                 (S.fromList xs <> S.fromList ys)
 
 prop_monoid_assoc :: [Double] -> [Double] -> [Double] -> Bool
 prop_monoid_assoc xs ys zs =
-    let (sxs, sys, szs) = (summary xs, summary ys, summary zs)
+    let (sxs, sys, szs) = (S.fromList xs, S.fromList ys, S.fromList zs)
      in ((sxs <> sys) <> szs) `approxEqualS` (sxs <> (sys <> szs))
 
 prop_monoid_commute :: [Double] -> [Double] -> Bool
 prop_monoid_commute xs ys =
-    let (sxs, sys) = (summary xs, summary ys)
+    let (sxs, sys) = (S.fromList xs, S.fromList ys)
      in (sxs <> sys) `approxEqualS` (sys <> sxs)
 
 tests_monoid :: Test
@@ -70,8 +71,8 @@ probsFromWeights ws = let
 
 approxEqualS :: Summary -> Summary -> Bool
 approxEqualS a b =
-    sampleSize a == sampleSize b &&
-      all eq [ sampleMin, sampleMax, sampleMean, sampleVar ]
+    S.size a == S.size b &&
+      all eq [ S.min, S.max, S.mean, S.variance ]
     where
         eq f = f a ~== f b
 
