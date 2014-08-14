@@ -32,7 +32,6 @@ import qualified Data.Vector as BV
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
-
 import Control.Monad.MC.GSLBase
 import Control.Monad.MC.Walker
 
