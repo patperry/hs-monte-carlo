@@ -1,11 +1,12 @@
 
 import Control.Monad
 import Control.Monad.Primitive( PrimMonad )
-import Control.Monad.MC
 import Control.Monad.ST( runST )
 import Data.List( foldl' )
-import Data.Summary
 import Text.Printf( printf )
+
+import Control.Monad.MC
+import Data.Summary.Double
 
 
 -- | There a three items on the menu.

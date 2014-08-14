@@ -8,8 +8,8 @@ import Data.List( foldl' )
 import Text.Printf( printf )
 
 import Control.Monad.MC
-import Data.Summary
-import Data.Summary.Utils( inInterval )
+import Data.Summary( inInterval )
+import Data.Summary.Double
 
 -- | Sample from a binomial distribution with the given parameters.
 binomial :: (PrimMonad m) => Int -> Double -> MC m Int

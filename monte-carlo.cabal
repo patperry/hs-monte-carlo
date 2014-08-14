@@ -26,7 +26,6 @@ library
             Data.Summary
             Data.Summary.Bool
             Data.Summary.Double
-            Data.Summary.Utils
 
     other-modules:
             Control.Monad.MC.GSL

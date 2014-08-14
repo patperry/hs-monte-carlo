@@ -34,7 +34,7 @@ import Data.List( foldl' )
 import Data.Monoid
 import Text.Printf
 
-import Data.Summary.Utils
+import Data.Summary
 
 
 -- | A type for storing summary statistics for a data set including

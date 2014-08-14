@@ -9,7 +9,7 @@ import Control.Monad.MC( STMC, foldMC, mt19937, runMC, uniform )
 import Control.Monad.ST( runST )
 import Data.Monoid( (<>), mempty )
 import Data.Summary.Bool( empty, update, sampleMean, sampleSE )
-import Data.Summary.Utils( interval )
+import Data.Summary( interval )
 import Text.Printf( printf )
 \end{code}
 
