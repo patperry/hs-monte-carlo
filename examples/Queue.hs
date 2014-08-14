@@ -185,13 +185,13 @@ foldRestaurant f a []     r = finishServing r >>= f a
 foldRestaurant f a (c:cs) r = do
     (ss,r') <- processEvent c r
     a' <- f a ss
-    a' `seq` foldRestaurant f a' cs r'
+    foldRestaurant f a' cs r'
 
 
 -- | Compute a summary of the total waiting times for each customer.
 summarizeService :: (PrimMonad m) => [CustomerEvent] -> Restaurant -> MC m Summary
 summarizeService cs r =
-    foldRestaurant (\s ss -> return $ foldl' update s $ map totalTime ss)
+    foldRestaurant (\s ss -> return $! foldl' update s $ map totalTime ss)
                    empty cs r
   where
     totalTime (Service _ w s) = w+s

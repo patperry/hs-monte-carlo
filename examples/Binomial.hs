@@ -23,7 +23,7 @@ binomial n p = let
 binomialMean :: (PrimMonad m) => Int -> Double -> Int -> MC m (Double,Double)
 binomialMean n p reps =
     liftM (sampleCI 0.95) $
-        foldMC (\stats x -> return $ update stats (fromIntegral x)) empty
+        foldMC (\stats x -> return $! update stats (fromIntegral x)) empty
                reps (binomial n p)
 
 -- | Compute @reps@ 95% confidence intervals for the mean of an @(n,p)@
@@ -31,7 +31,7 @@ binomialMean n p reps =
 -- of intervals that contain the true mean.
 coverage :: (PrimMonad m) => Int -> Double -> Int -> Int -> MC m Int
 coverage n p size reps =
-    foldMC (\tot ci -> return $ update tot (mu `inInterval` ci)) 0
+    foldMC (\tot ci -> return $! update tot (mu `inInterval` ci)) 0
            reps (binomialMean n p size)
   where
     mu = fromIntegral n * p
@@ -40,7 +40,7 @@ coverage n p size reps =
 
 main =
     let seed = 0
-        reps = 100
+        reps = 10000
         n    = 10
         p    = 0.2
         size = 500

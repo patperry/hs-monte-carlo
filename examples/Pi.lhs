@@ -51,7 +51,7 @@ unitBox = liftA2 (,) (uniform (-1) 1)
 estimatePi :: Int -> STMC s (Double,Double)
 estimatePi n = let
     circ = fmap inUnitCircle unitBox
-    mc   = foldMC (\s x -> pure $ update s x) empty n circ
+    mc   = foldMC (\s x -> pure $! update s x) empty n circ
     in fmap (\s -> let (mu,se) = (sampleMean s, sampleSE s)
                    in (4*mu,4*se)) mc
 \end{code}

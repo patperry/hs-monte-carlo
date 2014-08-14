@@ -26,7 +26,7 @@ foldMC f a n mb | n <= 0    = return a
                 | otherwise = do
     b <- mb
     a' <- f a b
-    a' `seq` foldMC f a' (n-1) mb
+    foldMC f a' (n-1) mb
 {-# INLINE foldMC #-}
 
 -- | Produce a lazy infinite list of values from the given seed and
