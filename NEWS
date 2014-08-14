@@ -1,3 +1,31 @@
+Changes in 0.6:
+
+* Major overhaul. Most client code will break.
+
+* Replaced the old MC type with a monad transformer,
+  requiring the base monad to be an instance of PrimMonad.
+
+* Removed the MCT type.
+
+* Removed the MonadMC class.
+
+* Removed unsafe operations relying on lazy IO (unsafeInterleaveIO),
+  or replaced them by safe, strict versions.
+
+* Added new fold operations foldMC and forEachMC.
+
+* Simplified module structure.
+
+* Renamed Data.Summary.Utils to Data.Summary.  This means that Data.Summary
+  is no longer an alias for Data.Summary.Double.
+
+* Added empty, union operations to Summary modules.
+
+* Refactored and simplified sampling and shuffling functions.
+
+* Updated examples.
+
+
 Changes in 0.5:
 
 * Clark Gaebel added Monoid and NFData instances to Summary types
