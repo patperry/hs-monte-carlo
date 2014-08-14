@@ -28,7 +28,6 @@ import Control.Monad( forM_, liftM )
 import Control.Monad.Primitive( PrimMonad )
 import Control.Monad.Trans.Class( lift )
 import Data.List( foldl', sort )
-import Data.Vector.Unboxed( Unbox )
 import qualified Data.Vector as BV
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
@@ -46,6 +45,7 @@ sample xs = let
     in sampleHelp n xs $ sampleInt n
 {-# INLINE sample #-}
 
+
 -- | @sampleWithWeights wxs@ samples a value from the list with the given
 -- weight.
 sampleWithWeights :: (PrimMonad m) => [(Double, a)] -> MC m a
@@ -55,20 +55,12 @@ sampleWithWeights wxs = let
     in sampleHelp n xs $ sampleIntWithWeights ws n
 {-# INLINE sampleWithWeights #-}
 
+
 sampleHelp :: (PrimMonad m) => Int -> [a] -> MC m Int -> MC m a
 sampleHelp _n xs f = let
     arr = BV.fromList xs
     in liftM (BV.unsafeIndex arr) f
-
-sampleHelpU :: (Unbox a, Monad m) => Int -> [a] -> m Int -> m a
-sampleHelpU _n xs f = let
-    arr = V.fromList xs
-    in liftM (V.unsafeIndex arr) f
-
-{-# RULES "sampleHelp/Double" forall n xs f.
-              sampleHelp n (xs :: [Double]) f = sampleHelpU n xs f #-}
-{-# RULES "sampleHelp/Int" forall n xs f.
-              sampleHelp n (xs :: [Int]) f = sampleHelpU n xs f #-}
+{-# INLINE sampleHelp #-}
 
 
 -- | @sampleSubset xs k@ samples a subset of size @k@ from @xs@ by
@@ -77,8 +69,9 @@ sampleHelpU _n xs f = let
 sampleSubset :: (PrimMonad m) => [a] -> Int -> MC m [a]
 sampleSubset xs k = let
     n = length xs
-    in sampleListHelp n xs $ sampleIntSubset n k
+    in sampleSubsetHelp n xs $ sampleIntSubset n k
 {-# INLINE sampleSubset #-}
+
 
 -- | Sample a subset of the elements with the given weights.  Return
 -- the elements of the subset in the order they were sampled.
@@ -86,23 +79,15 @@ sampleSubsetWithWeights :: (PrimMonad m) => [(Double,a)] -> Int -> MC m [a]
 sampleSubsetWithWeights wxs k = let
     (ws,xs) = unzip wxs
     n = length ws
-    in sampleListHelp n xs $ sampleIntSubsetWithWeights ws n k
+    in sampleSubsetHelp n xs $ sampleIntSubsetWithWeights ws n k
 {-# INLINE sampleSubsetWithWeights #-}
 
-sampleListHelp :: (Monad m) => Int -> [a] -> m [Int] -> m [a]
-sampleListHelp _n xs f = let
+
+sampleSubsetHelp :: (Monad m) => Int -> [a] -> m [Int] -> m [a]
+sampleSubsetHelp _n xs f = let
     arr = BV.fromList xs
     in liftM (map $ BV.unsafeIndex arr) f
-
-sampleListHelpU :: (Unbox a, Monad m) => Int -> [a] -> m [Int] -> m [a]
-sampleListHelpU _n xs f = let
-    arr = V.fromList xs
-    in liftM (map $ V.unsafeIndex arr) f
-
-{-# RULES "sampleListHelp/Double" forall n xs f.
-              sampleListHelp n (xs :: [Double]) f = sampleListHelpU n xs f #-}
-{-# RULES "sampleListHelp/Int" forall n xs f.
-              sampleListHelp n (xs :: [Int]) f = sampleListHelpU n xs f #-}
+{-# INLINE sampleSubsetHelp #-}
 
 
 -- | @sampleInt n@ samples integers uniformly from @[ 0..n-1 ]@.  It is an
@@ -110,6 +95,7 @@ sampleListHelpU _n xs f = let
 sampleInt :: (PrimMonad m) => Int -> MC m Int
 sampleInt n | n < 1     = fail "invalid argument"
             | otherwise = uniformInt n
+
 
 -- | @sampleIntWithWeights ws n@ samples integers from @[ 0..n-1 ]@ with the
 -- probability of choosing @i@ proportional to @ws !! i@.  The list @ws@ must
@@ -141,7 +127,6 @@ sampleIntSubset n k | k < 0     = fail "negative subset size"
                  MV.unsafeWrite xs u j
                  return i
         go xs (y:ys) (n'-1) (k'-1)
-
 
 
 -- | @sampleIntSubsetWithWeights ws n k@ samplea size @k@ subset of
@@ -196,16 +181,4 @@ shuffle xs = let
     n   = length xs
     mis = liftM BV.fromList (sampleIntSubset n n)
     in liftM (BV.toList . BV.unsafeBackpermute (BV.fromList xs)) mis
-
-shuffleU :: (Unbox a, PrimMonad m) => [a] -> MC m [a]
-shuffleU xs = let
-    n   = length xs
-    mis = liftM V.fromList (sampleIntSubset n n)
-    in liftM (V.toList . V.unsafeBackpermute (V.fromList xs)) mis
-
-
-{-# RULES "shuffle/Double" forall xs.
-              shuffle (xs :: [Double]) = shuffleU xs #-}
-{-# RULES "shuffle/Int" forall xs.
-              shuffle (xs :: [Int]) = shuffleU xs #-}
 
