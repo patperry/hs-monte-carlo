@@ -12,7 +12,7 @@ Changes in 0.6:
 * Removed unsafe operations relying on lazy IO (unsafeInterleaveIO),
   or replaced them by safe, strict versions.
 
-* Added new fold operations foldMC and forEachMC.
+* Added new fold operation foldMC.
 
 * Simplified module structure.
 

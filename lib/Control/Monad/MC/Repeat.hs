@@ -11,7 +11,6 @@
 module Control.Monad.MC.Repeat (
     -- * Repeating computations
     foldMC,
-    forEachMC,
     repeatMC,
     replicateMC,
     ) where
@@ -38,19 +37,6 @@ foldMC f a n mb | n <= 0    = return a
     a' <- f a b
     foldMC f a' (n-1) mb
 {-# INLINE foldMC #-}
-
-
--- | A version of 'foldMC' that does not transform a state value.
-forEachMC :: (PrimMonad m) => Int            -- ^ Number of replicates.
-                           -> MC m a         -- ^ Generator.
-                           -> (a -> MC m ()) -- ^ Replicate consumer.
-                           -> MC m ()
-forEachMC n ma f | n <= 0    = return ()
-                 | otherwise = do
-    a <- ma
-    f a
-    forEachMC (n-1) ma f
-{-# INLINE forEachMC #-}
 
 
 -- | Produce a lazy infinite list of replicates from the given random
