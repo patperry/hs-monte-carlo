@@ -25,6 +25,8 @@ Changes in 0.6:
 
 * Removed NFData instances from Summary types; add Eq instances.
 
+* Add Eq, Show, Data, Typeable instances.
+
 * Updated examples.
 
 

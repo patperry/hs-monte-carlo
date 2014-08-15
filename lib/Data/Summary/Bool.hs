@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Data.Summary.Bool
@@ -46,6 +47,7 @@ module Data.Summary.Bool (
 import Prelude hiding (sum)
 import Data.List( foldl' )
 import Data.Monoid( Monoid(..) )
+import Data.Data( Data, Typeable )
 import Text.Printf( printf )
 
 import Data.Summary.Utils( interval )
@@ -58,7 +60,7 @@ import Data.Summary.Utils( interval )
 -- is interpreted as a zero.
 data Summary = S {-# UNPACK #-} !Int -- number of observations
                  {-# UNPACK #-} !Int -- number of True values
-    deriving(Eq)
+    deriving(Eq, Data, Typeable)
 
 instance Show Summary where
     show s@(S n x) =

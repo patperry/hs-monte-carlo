@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Data.Summary.Double
@@ -52,6 +53,8 @@ module Data.Summary.Double (
 
 import Prelude hiding (min, max, sum)
 import qualified Prelude as P
+
+import Data.Data( Data, Typeable )
 import Data.List( foldl' )
 import Data.Monoid
 import Text.Printf
@@ -66,7 +69,7 @@ data Summary = S {-# UNPACK #-} !Int     -- sample size
                  {-# UNPACK #-} !Double  -- sum of squares
                  {-# UNPACK #-} !Double  -- sample min
                  {-# UNPACK #-} !Double  -- sample max
-    deriving(Eq)
+    deriving(Eq, Data, Typeable)
 
 instance Show Summary where
     show s@(S n mu _ l h) =

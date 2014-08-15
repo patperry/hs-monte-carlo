@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, RankNTypes, TypeFamilies #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module     : Control.Monad.MC.GSLBase
@@ -53,6 +53,7 @@ import Control.Monad.IO.Class    ( MonadIO(..) )
 import Control.Monad.ST          ( ST, runST )
 import Control.Monad.Primitive   ( PrimMonad(..), unsafePrimToPrim )
 import Control.Monad.Trans.Class ( MonadTrans(..) )
+import Data.Typeable             ( Typeable )
 import Data.Word                 ( Word8, Word64 )
 
 import qualified Data.Vector.Storable as VS
@@ -65,6 +66,7 @@ import GSL.Random.Dist
 -- to a random number generator while allowing operations in a
 -- base monad, @m@.
 newtype MC m a = MC { runMC :: RNG (PrimState m) -> m a }
+
 
 -- | Type alias for when the base monad is 'ST'.
 type STMC s a = MC (ST s) a
@@ -122,6 +124,7 @@ instance MonadTrans MC where
 
 -- | The random number generator type.
 newtype RNG s = RNG GSL.RNG
+    deriving(Eq, Show, Typeable)
 
 -- | A shorter name for RNG in the 'IO' monad.
 type IORNG = RNG (PrimState IO)

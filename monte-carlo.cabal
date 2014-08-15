@@ -37,11 +37,12 @@ library
             Data.Summary.Utils
 
     extensions:
+            DeriveDataTypeable
             RankNTypes
             TypeFamilies
 
     build-depends:  base         >= 4     && < 5,
-                    gsl-random   >= 0.4.3 && < 0.5,
+                    gsl-random   >= 0.5   && < 0.6,
                     primitive    >= 0.5   && < 0.6,
                     transformers >= 0.3   && < 0.5,
                     vector       >= 0.6   && < 0.11
