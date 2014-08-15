@@ -71,7 +71,7 @@ test-suite monte-carlo-test
       vector                     >= 0.6     && < 0.11,
       ieee754                    >= 0.7     && < 0.8,
       random                     >= 1.0     && < 1.1,
-      QuickCheck                 >= 2.4.0.1 && < 2.6,
+      QuickCheck                 >= 2.4.0.1 && < 2.8,
       test-framework             >= 0.4     && < 0.9,
       test-framework-quickcheck2 >= 0.2     && < 0.4
 
