@@ -9,41 +9,48 @@
 --
 
 module Control.Monad.MC.GSLBase (
-    -- * The Monte Carlo monad transformer
+    -- * Monte Carlo monad transformer
     MC(..),
     STMC,
     IOMC,
     evalMC,
 
-    -- * Random number generators
+    -- * Random number generator
+    -- ** Types
     RNG,
     IORNG,
     STRNG,
     Seed,
+    -- ** Creation
     mt19937,
     mt19937WithState,
+    -- ** State
     getRNGName,
     getRNGSize,
     getRNGState,
     setRNGState,
 
     -- * Random number distributions
+    -- ** Uniform
     uniform,
     uniformInt,
+    -- ** Continuous
     normal,
     exponential,
+    gamma,
+    cauchy,
     levy,
     levySkew,
-    poisson,
-    cauchy,
-    beta,
-    logistic,
     pareto,
     weibull,
-    gamma,
-    multinomial,
-    dirichlet,
+    logistic,
+    beta,
+    -- ** Discrete
     bernoulli,
+    poisson,
+    -- ** Multivariate
+    dirichlet,
+    multinomial,
     ) where
 
 import Control.Applicative       ( Applicative(..) )

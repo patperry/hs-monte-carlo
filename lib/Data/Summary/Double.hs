@@ -15,15 +15,17 @@ module Data.Summary.Double (
     Summary,
 
     -- * Properties
+    -- ** Sum
     size,
     sum,
+    sumSquaredErrors,
+    -- ** Mean
     mean,
     meanSE,
     meanCI,
     -- ** Scale
     stddev,
     variance,
-    sumSquaredErrors,
     -- ** Extremes
     min,
     max,
@@ -36,7 +38,7 @@ module Data.Summary.Double (
     insert,
     insertWith,
 
-    -- * Combine
+    -- * Combination
     union,
     unions,
 

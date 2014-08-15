@@ -15,8 +15,10 @@ module Data.Summary.Bool (
     Summary,
 
     -- * Properties
+    -- ** Sum
     size,
     sum,
+    -- ** Mean
     mean,
     meanSE,
     meanCI,
@@ -29,7 +31,7 @@ module Data.Summary.Bool (
     insert,
     insertWith,
 
-    -- * Combine
+    -- * Combination
     union,
     unions,
 

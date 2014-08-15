@@ -8,20 +8,20 @@
 --
 
 module Control.Monad.MC.Sample (
-    -- * Sampling from lists
+    -- * Sampling
+    -- ** Lists
     sample,
     sampleWithWeights,
     sampleSubset,
     sampleSubsetWithWeights,
+    shuffle,
 
-    -- * Sampling @Int@s
+    -- ** Ints
     sampleInt,
     sampleIntWithWeights,
     sampleIntSubset,
     sampleIntSubsetWithWeights,
-
-    -- * Shuffling
-    shuffle,
+    shuffleInt,
     ) where
 
 import Control.Monad( forM_, liftM )
@@ -178,6 +178,10 @@ sampleIntSubsetWithWeights ws n k | k < 0     = fail "negative subset size"
 shuffle :: (PrimMonad m) => [a] -> MC m [a]
 shuffle xs = let
     n   = length xs
-    mis = liftM BV.fromList (sampleIntSubset n n)
+    mis = liftM BV.fromList $ shuffleInt n
     in liftM (BV.toList . BV.unsafeBackpermute (BV.fromList xs)) mis
 
+
+-- | @shuffleInt n@ randomly permutes the elements of the list @[ 0..n-1 ]@.
+shuffleInt :: (PrimMonad m) => Int -> MC m [Int]
+shuffleInt n = sampleIntSubset n n
