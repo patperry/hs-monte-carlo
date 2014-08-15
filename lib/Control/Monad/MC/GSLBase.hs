@@ -48,6 +48,7 @@ module Control.Monad.MC.GSLBase (
 
 import Control.Applicative       ( Applicative(..) )
 import Control.Monad             ( liftM )
+import Control.Monad.Fix         ( MonadFix(..) )
 import Control.Monad.IO.Class    ( MonadIO(..) )
 import Control.Monad.ST          ( ST, runST )
 import Control.Monad.Primitive   ( PrimMonad(..), unsafePrimToPrim )
@@ -103,6 +104,10 @@ instance (Monad m) => Monad (MC m) where
 
     fail msg = MC $ \_ -> fail msg
     {-# INLINE fail #-}
+
+instance (MonadFix m) => MonadFix (MC m) where
+    mfix f = MC $ \r -> mfix $ flip (runMC . f) r
+    {-# INLINE mfix #-}
 
 instance (MonadIO m) => MonadIO (MC m) where
     liftIO io = MC $ \_ -> liftIO io
