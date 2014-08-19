@@ -72,7 +72,7 @@ probsFromWeights ws = let
 approxEqualS :: Summary -> Summary -> Bool
 approxEqualS a b =
     S.size a == S.size b &&
-      all eq [ S.min, S.max, S.mean, S.variance ]
+      all eq [ S.minimum, S.maximum, S.mean, S.variance ]
     where
         eq f = f a ~== f b
 

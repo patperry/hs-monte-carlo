@@ -27,8 +27,8 @@ module Data.Summary.Double (
     stddev,
     variance,
     -- ** Extremes
-    min,
-    max,
+    maximum,
+    minimum,
 
     -- * Construction
     empty,
@@ -53,7 +53,7 @@ module Data.Summary.Double (
 
     ) where
 
-import Prelude hiding (min, max, sum)
+import Prelude hiding (maximum, minimum, sum)
 import qualified Prelude as P
 
 import Data.Data( Data, Typeable )
@@ -76,8 +76,8 @@ data Summary = S {-# UNPACK #-} !Int     -- sample size
 instance Show Summary where
     show s@(S n mu _ l h) =
              printf "    sample size: %d" n
-        ++ printf "\n            min: %g" l
-        ++ printf "\n            max: %g" h
+        ++ printf "\n        minimum: %g" l
+        ++ printf "\n        maximum: %g" h
         ++ printf "\n           mean: %g" mu
         ++ printf "\n             SE: %g" (meanSE s)
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
@@ -121,13 +121,13 @@ variance s = (sumSquaredErrors s) / fromIntegral (size s - 1)
 sumSquaredErrors :: Summary -> Double
 sumSquaredErrors (S _ _ s _ _) = s
 
--- | Minimum value.
-min :: Summary -> Double
-min (S _ _ _ l _) = l
-
 -- | Maximum value.
-max :: Summary -> Double
-max (S _ _ _ _ h) = h
+maximum :: Summary -> Double
+maximum (S _ _ _ _ h) = h
+
+-- | Minimum value.
+minimum :: Summary -> Double
+minimum (S _ _ _ l _) = l
 
 -- | An empty summary.
 empty :: Summary
@@ -186,11 +186,11 @@ fromList = foldl' (flip insert) empty
 fromListWith :: (a -> Double) -> [a] -> Summary
 fromListWith f = fromList . map f
 
--- | Convert to (size, mean, sumSquaredErrors, min, max).
+-- | Convert to (size, mean, sumSquaredErrors, minimum, maximum).
 toStats :: Summary -> (Int,Double,Double,Double,Double)
 toStats (S n m s l u) = (n,m,s,l,u)
 
--- | Convert from (size, mean, sumSquaredErrors, min, max).
+-- | Convert from (size, mean, sumSquaredErrors, minimum, maximum).
 -- No validation is performed.
 fromStats :: Int -> Double -> Double -> Double -> Double -> Summary
 fromStats = S
