@@ -66,7 +66,7 @@ test-suite monte-carlo-test
       Data.Summary.Double
       Data.Summary.Utils
   ghc-options:
-      -Wall -Werror
+      -Wall
   build-depends:
       base                       >= 4       && < 5,
       gsl-random                 >= 0.5     && < 0.6,
