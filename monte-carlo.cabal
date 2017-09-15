@@ -1,5 +1,5 @@
 name:           monte-carlo
-version:        0.6.1
+version:        0.6.2
 license:        BSD3
 license-file:   LICENSE
 author:         Patrick Perry
@@ -43,9 +43,9 @@ library
 
     build-depends:  base         >= 4     && < 5,
                     gsl-random   >= 0.5   && < 0.6,
-                    primitive    >= 0.5   && < 0.6,
-                    transformers >= 0.3   && < 0.5,
-                    vector       >= 0.6   && < 0.11
+                    primitive    >= 0.5   && < 0.7,
+                    transformers >= 0.3   && < 0.6,
+                    vector       >= 0.6   && < 0.13
 
     hs-source-dirs: lib
     ghc-options:    -Wall
@@ -61,17 +61,21 @@ test-suite monte-carlo-test
       lib, tests
   main-is:
       Main.hs
+  other-modules:
+      Control.Monad.MC.Walker
+      Data.Summary.Double
+      Data.Summary.Utils
   ghc-options:
       -Wall -Werror
   build-depends:
       base                       >= 4       && < 5,
       gsl-random                 >= 0.5     && < 0.6,
-      primitive                  >= 0.5     && < 0.6,
-      transformers               >= 0.3     && < 0.5,
-      vector                     >= 0.6     && < 0.11,
-      ieee754                    >= 0.7     && < 0.8,
-      random                     >= 1.0     && < 1.1,
-      QuickCheck                 >= 2.4.0.1 && < 2.8,
+      primitive                  >= 0.5     && < 0.7,
+      transformers               >= 0.3     && < 0.6,
+      vector                     >= 0.6     && < 0.13,
+      ieee754                    >= 0.7     && < 0.9,
+      random                     >= 1.0     && < 1.2,
+      QuickCheck                 >= 2.4.0.1 && < 2.11,
       test-framework             >= 0.4     && < 0.9,
       test-framework-quickcheck2 >= 0.2     && < 0.4
 

@@ -1,3 +1,8 @@
+Changes in 0.6.2:
+
+* Bump dependency versions, fix compiler warnings.
+
+
 Changes in 0.6.1:
 
 * Rename Data.Summary.Double max, min to maximum, minimum.

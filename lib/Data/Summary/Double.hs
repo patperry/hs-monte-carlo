@@ -58,7 +58,7 @@ import qualified Prelude as P
 
 import Data.Data( Data, Typeable )
 import Data.List( foldl' )
-import Data.Monoid
+import Data.Monoid( Monoid(..) )
 import Text.Printf
 
 import Data.Summary.Utils( interval )
