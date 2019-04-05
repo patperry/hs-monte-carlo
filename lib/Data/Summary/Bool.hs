@@ -73,6 +73,9 @@ instance Show Summary where
         ++ printf "\n         99%% CI: (%g, %g)" c1 c2
       where (c1,c2) = meanCI 0.99 s
 
+instance Semigroup Summary where
+  (<>) = union
+
 instance Monoid Summary where
     mempty = empty
     mappend = union
